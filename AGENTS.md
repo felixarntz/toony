@@ -20,6 +20,54 @@ Note: `build` and `doctor` need `bun run` since they conflict with built-in bun 
 
 In general, default to using Bun instead of Node.js.
 
+# shadcn Guidelines
+
+This project uses shadcn components.
+
+To add a new component, use `pnpm dlx shadcn@latest add <component>`. Example:
+```bash
+bunx --bun shadcn@latest add button
+```
+
+To search for available components in the shadcn registry, use:
+```bash
+bunx --bun shadcn@latest search @shadcn
+```
+
+You can optionally provide a `-q` parameter with a search query:
+```bash
+bunx --bun shadcn@latest search @shadcn -q "button"
+```
+
+# AI SDK Guidelines
+
+This project uses the AI SDK in its latest version. It is critical to consider the version number, so that you don't apply outdated or unsupported patterns.
+
+## Never import `gateway` or `createGateway`
+
+The AI Gateway is the default global provider, so you can access models using a simple string.
+
+**BAD:**
+```ts
+import { generateText } from 'ai';
+import { gateway } from '@ai-sdk/gateway';
+
+const { text } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  prompt: 'What is love?',
+});
+```
+
+**GOOD:**
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  prompt: 'What is love?',
+});
+```
+
 # Ultracite Code Standards
 
 This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
