@@ -1,6 +1,6 @@
 import type { AppNode } from "@/lib/types";
 
-const NODE_WIDTHS: Record<string, number> = {
+export const NODE_WIDTHS: Record<string, number> = {
   style: 288,
   setting: 288,
   location: 320,
@@ -9,8 +9,18 @@ const NODE_WIDTHS: Record<string, number> = {
   movie: 384,
 };
 
-const ROW_GAP = 100;
+export const NODE_HEIGHTS: Record<string, number> = {
+  style: 200,
+  setting: 200,
+  location: 400,
+  character: 500,
+  storyImage: 550,
+  movie: 350,
+};
+
+const ROW_GAP = 60;
 const COL_GAP = 40;
+export const NODE_GAP = COL_GAP;
 
 const ROW_ORDER: string[][] = [
   ["style", "setting"],
@@ -79,12 +89,13 @@ export function computeLayoutPositions(opts: {
     let maxHeight = 0;
     for (const entry of entries) {
       const w = NODE_WIDTHS[entry.nodeType] ?? 320;
+      const h = NODE_HEIGHTS[entry.nodeType] ?? 300;
       const nodesOfType = opts.nodes.filter((n) => n.type === entry.nodeType);
       for (const node of nodesOfType) {
         positions.set(node.id, { x: Math.round(x), y });
         x += w + COL_GAP;
       }
-      maxHeight = Math.max(maxHeight, 300);
+      maxHeight = Math.max(maxHeight, h);
     }
 
     y += maxHeight + ROW_GAP;
@@ -99,4 +110,73 @@ export function computeNodePosition(opts: {
 }): { x: number; y: number } {
   const positions = computeLayoutPositions({ nodes: opts.nodes });
   return positions.get(opts.nodeId) ?? { x: 0, y: 0 };
+}
+
+interface Rect {
+  height: number;
+  width: number;
+  x: number;
+  y: number;
+}
+
+function rectsOverlap(a: Rect, b: Rect): boolean {
+  return (
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+  );
+}
+
+function nodeToRect(node: AppNode): Rect {
+  return {
+    x: node.position.x,
+    y: node.position.y,
+    width: NODE_WIDTHS[node.type ?? ""] ?? 320,
+    height: NODE_HEIGHTS[node.type ?? ""] ?? 300,
+  };
+}
+
+function pushApart(moved: Rect, other: Rect): void {
+  const overlapX =
+    Math.min(moved.x + moved.width, other.x + other.width) -
+    Math.max(moved.x, other.x);
+  const overlapY =
+    Math.min(moved.y + moved.height, other.y + other.height) -
+    Math.max(moved.y, other.y);
+
+  if (overlapX < overlapY) {
+    moved.x =
+      moved.x < other.x
+        ? other.x - moved.width - NODE_GAP
+        : other.x + other.width + NODE_GAP;
+  } else {
+    moved.y =
+      moved.y < other.y
+        ? other.y - moved.height - NODE_GAP
+        : other.y + other.height + NODE_GAP;
+  }
+}
+
+export function resolveOverlap(opts: {
+  movedNode: AppNode;
+  nodes: AppNode[];
+}): { x: number; y: number } | null {
+  const movedRect = nodeToRect(opts.movedNode);
+  let hasOverlap = false;
+
+  for (const other of opts.nodes) {
+    if (other.id === opts.movedNode.id) {
+      continue;
+    }
+    const otherRect = nodeToRect(other);
+    if (rectsOverlap(movedRect, otherRect)) {
+      hasOverlap = true;
+      pushApart(movedRect, otherRect);
+    }
+  }
+
+  return hasOverlap
+    ? { x: Math.round(movedRect.x), y: Math.round(movedRect.y) }
+    : null;
 }

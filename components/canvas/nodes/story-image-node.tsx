@@ -2,8 +2,8 @@
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
-import Image from "next/image";
 import { useCallback } from "react";
+import { ImageOverlay } from "@/components/canvas/image-overlay";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,16 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import { STYLE_PRESET_DESCRIPTIONS } from "@/lib/constants";
 import { useFlowStore } from "@/lib/store";
+import {
+  getSettingDescription,
+  getStyleDescription,
+} from "@/lib/style-description";
 import type {
   CharacterNodeData,
   LocationNodeData,
-  SettingNodeData,
   StoryImageNodeData,
   StoryImageNodeType,
-  StyleNodeData,
 } from "@/lib/types";
 
 export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
@@ -67,35 +67,27 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
       ? (storyImageNodes[myIndex - 1].data as StoryImageNodeData)
       : null;
 
+  const styleDescription = getStyleDescription({ nodes });
+  const settingDescription = getSettingDescription({ nodes });
+
+  const canGenerate =
+    data.sceneDescription.trim().length > 0 &&
+    data.locationId !== null &&
+    data.characterIds.length > 0 &&
+    styleDescription.trim().length > 0 &&
+    settingDescription.trim().length > 0 &&
+    !data.isGenerating;
+
   const handleGenerate = useCallback(async () => {
-    if (
-      !(data.sceneDescription.trim() && data.locationId) ||
-      data.characterIds.length === 0 ||
-      data.isGenerating
-    ) {
+    if (!canGenerate) {
       return;
     }
 
     setStoryImageIsGenerating({ nodeId: id, isGenerating: true });
 
     try {
-      const styleNode = nodes.find((n) => n.type === "style");
-      const settingNode = nodes.find((n) => n.type === "setting");
       const locationNode = nodes.find((n) => n.id === data.locationId);
-
-      const styleData = styleNode?.data as StyleNodeData | undefined;
-      const settingData = settingNode?.data as SettingNodeData | undefined;
       const locationData = locationNode?.data as LocationNodeData | undefined;
-
-      let styleDescription = "";
-      if (styleData) {
-        styleDescription =
-          styleData.preset === "custom"
-            ? styleData.customDescription
-            : (STYLE_PRESET_DESCRIPTIONS[
-                styleData.preset as Exclude<typeof styleData.preset, "custom">
-              ] ?? "");
-      }
 
       const characters = data.characterIds
         .map((charId) => {
@@ -113,13 +105,12 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
         })
         .filter((c): c is NonNullable<typeof c> => c !== null);
 
-      const response = await fetch("/api/generate-image", {
+      const response = await fetch("/api/generate-story-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "storyImage",
           styleDescription,
-          settingDescription: settingData?.description ?? "",
+          settingDescription,
           locationName:
             locationData?.description.split(".")[0].trim() ?? "Location",
           locationDescription: locationData?.description ?? "",
@@ -140,12 +131,14 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
       setStoryImageIsGenerating({ nodeId: id, isGenerating: false });
     }
   }, [
+    canGenerate,
     data.sceneDescription,
     data.locationId,
     data.characterIds,
-    data.isGenerating,
     id,
     nodes,
+    styleDescription,
+    settingDescription,
     globalSettings.imageModel,
     previousStoryImage?.generatedImage,
     setStoryImageIsGenerating,
@@ -162,12 +155,6 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
     },
     [data.characterIds, id, setStoryImageCharacterIds]
   );
-
-  const canGenerate =
-    data.sceneDescription.trim().length > 0 &&
-    data.locationId !== null &&
-    data.characterIds.length > 0 &&
-    !data.isGenerating;
 
   return (
     <div className="relative w-96 rounded-lg border border-purple-500/30 bg-zinc-900 p-4 shadow-lg">
@@ -260,25 +247,11 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
         value={data.sceneDescription}
       />
 
-      {data.isGenerating && (
-        <div className="mb-3 overflow-hidden rounded">
-          <Skeleton className="h-48 w-full" />
-          <div className="flex items-center justify-center gap-2 py-2 text-xs text-zinc-400">
-            <Loader2 className="size-3 animate-spin" />
-            Generating story frame...
-          </div>
-        </div>
-      )}
-
-      {!data.isGenerating && data.generatedImage && (
-        <div className="mb-3 overflow-hidden rounded">
-          <Image
+      {data.generatedImage && !data.isGenerating && (
+        <div className="nodrag mb-3 overflow-hidden rounded">
+          <ImageOverlay
             alt="Generated story frame"
-            className="w-full"
-            height={384}
             src={`data:image/png;base64,${data.generatedImage}`}
-            unoptimized
-            width={384}
           />
         </div>
       )}

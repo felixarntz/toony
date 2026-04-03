@@ -1,69 +1,43 @@
+import type { TextPart } from "ai";
 import { describe, expect, it } from "vitest";
-import { buildCharacterPrompt } from "./character";
+import {
+  buildCharacterPrompt,
+  buildCharacterSideViewPrompt,
+} from "./character";
 
 describe("buildCharacterPrompt", () => {
-  it("returns correct system instruction for frontal angle", () => {
+  it("returns correct system instruction for frontal view", () => {
     const result = buildCharacterPrompt({
       styleDescription: "Ghibli anime style",
       settingDescription: "A post-apocalyptic Tokyo",
       characterDescription: "A young girl with red hair",
-      angle: "frontal",
     });
 
     expect(result.system).toContain("Ghibli anime style");
     expect(result.system).toContain("A post-apocalyptic Tokyo");
     expect(result.system).toContain(
-      "You are generating a character reference portrait for a visual story. Generate a single frontal portrait of this character."
+      "You are generating a full-body character reference image for a visual story."
     );
+    expect(result.system).toContain("frontal");
+    expect(result.system).toContain("plain white");
   });
 
-  it("returns correct system instruction for side angle", () => {
-    const result = buildCharacterPrompt({
-      styleDescription: "Comic book style",
-      settingDescription: "Medieval fantasy",
-      characterDescription: "A tall knight in armor",
-      angle: "side",
-    });
-
-    expect(result.system).toContain("Comic book style");
-    expect(result.system).toContain("Medieval fantasy");
-    expect(result.system).toContain(
-      "You are generating a character reference portrait for a visual story. Generate a single side-view portrait of this character."
-    );
-  });
-
-  it("includes frontal angle instruction in user message", () => {
+  it("includes frontal instruction in user message", () => {
     const result = buildCharacterPrompt({
       styleDescription: "Watercolor",
       settingDescription: "Victorian England",
       characterDescription: "A detective with a monocle",
-      angle: "frontal",
     });
 
-    expect(result.messages).toHaveLength(1);
-    expect(result.messages[0].role).toBe("user");
-    expect(result.messages[0].content).toHaveLength(1);
-    expect(result.messages[0].content[0].text).toContain(
+    const messages = result.messages as NonNullable<typeof result.messages>;
+    expect(messages).toHaveLength(1);
+    expect(messages[0].role).toBe("user");
+    expect(messages[0].content).toHaveLength(1);
+    expect((messages[0].content[0] as TextPart).text).toContain(
       "A detective with a monocle"
     );
-    expect(result.messages[0].content[0].text).toContain(
-      "Draw a frontal portrait facing the viewer."
-    );
-  });
-
-  it("includes side angle instruction in user message", () => {
-    const result = buildCharacterPrompt({
-      styleDescription: "Pixel art",
-      settingDescription: "Space station",
-      characterDescription: "An android with glowing eyes",
-      angle: "side",
-    });
-
-    expect(result.messages[0].content[0].text).toContain(
-      "An android with glowing eyes"
-    );
-    expect(result.messages[0].content[0].text).toContain(
-      "Draw a side-view portrait from the left."
+    expect((messages[0].content[0] as TextPart).text).toContain(
+      "full-body frontal view"
     );
   });
 
@@ -72,13 +46,13 @@ describe("buildCharacterPrompt", () => {
       styleDescription: "",
       settingDescription: "",
       characterDescription: "A warrior",
-      angle: "frontal",
     });
 
     expect(result.system).toContain(
-      "You are generating a character reference portrait for a visual story."
+      "You are generating a full-body character reference image for a visual story."
     );
-    expect(result.messages[0].content[0].text).toContain("A warrior");
+    const messages = result.messages as NonNullable<typeof result.messages>;
+    expect((messages[0].content[0] as TextPart).text).toContain("A warrior");
   });
 
   it("returns the correct shape with system and messages keys", () => {
@@ -86,12 +60,51 @@ describe("buildCharacterPrompt", () => {
       styleDescription: "Manga",
       settingDescription: "Modern Tokyo",
       characterDescription: "A school student",
-      angle: "frontal",
     });
 
     expect(result).toHaveProperty("system");
     expect(result).toHaveProperty("messages");
     expect(typeof result.system).toBe("string");
     expect(Array.isArray(result.messages)).toBe(true);
+  });
+});
+
+describe("buildCharacterSideViewPrompt", () => {
+  it("returns correct system instruction for side view", () => {
+    const result = buildCharacterSideViewPrompt({
+      styleDescription: "Comic book style",
+      settingDescription: "Medieval fantasy",
+      characterDescription: "A tall knight in armor",
+      frontalImage: "base64data",
+    });
+
+    expect(result.system).toContain("side-view");
+    expect(result.system).toContain("Comic book style");
+    expect(result.system).toContain("Medieval fantasy");
+    expect(result.system).toContain("plain white");
+    expect(result.system).toContain("frontal reference image");
+  });
+
+  it("includes frontal image as context in user message", () => {
+    const result = buildCharacterSideViewPrompt({
+      styleDescription: "Pixel art",
+      settingDescription: "Space station",
+      characterDescription: "An android with glowing eyes",
+      frontalImage: "frontbase64",
+    });
+
+    const messages = result.messages as NonNullable<typeof result.messages>;
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toHaveLength(2);
+    expect((messages[0].content[0] as TextPart).text).toContain(
+      "An android with glowing eyes"
+    );
+    expect((messages[0].content[0] as TextPart).text).toContain(
+      "full-body side-view"
+    );
+    expect(messages[0].content[1]).toEqual({
+      type: "image",
+      image: "frontbase64",
+    });
   });
 });

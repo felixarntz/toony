@@ -1,3 +1,4 @@
+import type { TextPart } from "ai";
 import { describe, expect, it } from "vitest";
 import { buildLocationPrompt } from "./location";
 
@@ -12,7 +13,7 @@ describe("buildLocationPrompt", () => {
     expect(result.system).toContain("Ghibli anime style");
     expect(result.system).toContain("A post-apocalyptic Tokyo");
     expect(result.system).toContain(
-      "You are generating a reference image of a location for a visual story. Generate a single image that depicts this location."
+      "You are generating a reference image of a specific scene location for a visual story."
     );
   });
 
@@ -23,10 +24,11 @@ describe("buildLocationPrompt", () => {
       locationDescription: "A bustling marketplace",
     });
 
-    expect(result.messages).toHaveLength(1);
-    expect(result.messages[0].role).toBe("user");
-    expect(result.messages[0].content).toHaveLength(1);
-    expect(result.messages[0].content[0]).toEqual({
+    const messages = result.messages as NonNullable<typeof result.messages>;
+    expect(messages).toHaveLength(1);
+    expect(messages[0].role).toBe("user");
+    expect(messages[0].content).toHaveLength(1);
+    expect(messages[0].content[0]).toEqual({
       type: "text",
       text: "A bustling marketplace",
     });
@@ -40,9 +42,10 @@ describe("buildLocationPrompt", () => {
     });
 
     expect(result.system).toContain(
-      "You are generating a reference image of a location for a visual story."
+      "You are generating a reference image of a specific scene location for a visual story."
     );
-    expect(result.messages[0].content[0].text).toBe("A dark cave");
+    const messages = result.messages as NonNullable<typeof result.messages>;
+    expect((messages[0].content[0] as TextPart).text).toBe("A dark cave");
   });
 
   it("returns the correct shape with system and messages keys", () => {

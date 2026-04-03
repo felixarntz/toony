@@ -1,3 +1,4 @@
+import type { ImagePart, TextPart } from "ai";
 import { describe, expect, it } from "vitest";
 import { buildStoryImagePrompt } from "./story-image";
 
@@ -31,43 +32,44 @@ describe("buildStoryImagePrompt", () => {
 
   it("returns a single user message with correct text content", () => {
     const result = buildStoryImagePrompt(baseInput);
+    const messages = result.messages as NonNullable<typeof result.messages>;
 
-    expect(result.messages).toHaveLength(1);
-    expect(result.messages[0].role).toBe("user");
+    expect(messages).toHaveLength(1);
+    expect(messages[0].role).toBe("user");
 
-    const textPart = result.messages[0].content[0];
+    const textPart = messages[0].content[0] as TextPart;
     expect(textPart.type).toBe("text");
-    expect("text" in textPart && textPart.text).toContain(
+    expect(textPart.text).toContain(
       "Scene location: Abandoned Station — A crumbling train station overgrown with vines"
     );
-    expect("text" in textPart && textPart.text).toContain(
+    expect(textPart.text).toContain(
       "Characters in this scene: Hana — A young girl with red hair"
     );
-    expect("text" in textPart && textPart.text).toContain(
+    expect(textPart.text).toContain(
       "Scene action: Hana walks through the station"
     );
   });
 
   it("includes location image as second content part", () => {
     const result = buildStoryImagePrompt(baseInput);
+    const messages = result.messages as NonNullable<typeof result.messages>;
 
-    const imagePart = result.messages[0].content[1];
+    const imagePart = messages[0].content[1] as ImagePart;
     expect(imagePart.type).toBe("image");
-    expect("image" in imagePart && imagePart.image).toBe("location-base64");
+    expect(imagePart.image).toBe("location-base64");
   });
 
   it("includes character frontal and side images after location image", () => {
     const result = buildStoryImagePrompt(baseInput);
+    const messages = result.messages as NonNullable<typeof result.messages>;
 
-    const frontalPart = result.messages[0].content[2];
+    const frontalPart = messages[0].content[2] as ImagePart;
     expect(frontalPart.type).toBe("image");
-    expect("image" in frontalPart && frontalPart.image).toBe(
-      "hana-frontal-base64"
-    );
+    expect(frontalPart.image).toBe("hana-frontal-base64");
 
-    const sidePart = result.messages[0].content[3];
+    const sidePart = messages[0].content[3] as ImagePart;
     expect(sidePart.type).toBe("image");
-    expect("image" in sidePart && sidePart.image).toBe("hana-side-base64");
+    expect(sidePart.image).toBe("hana-side-base64");
   });
 
   it("handles multiple characters with correct image ordering", () => {
@@ -89,28 +91,30 @@ describe("buildStoryImagePrompt", () => {
       ],
     });
 
-    const content = result.messages[0].content;
+    const content = (result.messages as NonNullable<typeof result.messages>)[0]
+      .content;
     expect(content).toHaveLength(6);
-    expect(content[0].type).toBe("text");
-    expect(content[1].type).toBe("image");
-    expect("image" in content[2] && content[2].image).toBe("hana-frontal");
-    expect("image" in content[3] && content[3].image).toBe("hana-side");
-    expect("image" in content[4] && content[4].image).toBe("kenji-frontal");
-    expect("image" in content[5] && content[5].image).toBe("kenji-side");
+    expect((content[0] as TextPart).type).toBe("text");
+    expect((content[1] as ImagePart).type).toBe("image");
+    expect((content[2] as ImagePart).image).toBe("hana-frontal");
+    expect((content[3] as ImagePart).image).toBe("hana-side");
+    expect((content[4] as ImagePart).image).toBe("kenji-frontal");
+    expect((content[5] as ImagePart).image).toBe("kenji-side");
 
-    const textPart = content[0];
-    expect("text" in textPart && textPart.text).toContain(
+    const textPart = content[0] as TextPart;
+    expect(textPart.text).toContain(
       "Hana — A young girl with red hair; Kenji — A tall warrior"
     );
   });
 
   it("does not include previous frame text or image when not provided", () => {
     const result = buildStoryImagePrompt(baseInput);
+    const messages = result.messages as NonNullable<typeof result.messages>;
 
-    const textPart = result.messages[0].content[0];
-    expect("text" in textPart && textPart.text).not.toContain("previous frame");
+    const textPart = messages[0].content[0] as TextPart;
+    expect(textPart.text).not.toContain("previous frame");
 
-    expect(result.messages[0].content).toHaveLength(4);
+    expect(messages[0].content).toHaveLength(4);
   });
 
   it("includes previous frame image and continuity text when provided", () => {
@@ -119,17 +123,18 @@ describe("buildStoryImagePrompt", () => {
       previousFrameImage: "prev-frame-base64",
     });
 
-    const textPart = result.messages[0].content[0];
-    expect("text" in textPart && textPart.text).toContain(
+    const messages = result.messages as NonNullable<typeof result.messages>;
+    const textPart = messages[0].content[0] as TextPart;
+    expect(textPart.text).toContain(
       "This scene follows directly from the previous frame. Maintain visual continuity."
     );
 
-    const content = result.messages[0].content;
+    const content = messages[0].content;
     expect(content).toHaveLength(5);
 
-    const lastPart = content[4];
+    const lastPart = content[4] as ImagePart;
     expect(lastPart.type).toBe("image");
-    expect("image" in lastPart && lastPart.image).toBe("prev-frame-base64");
+    expect(lastPart.image).toBe("prev-frame-base64");
   });
 
   it("returns the correct shape with system and messages keys", () => {

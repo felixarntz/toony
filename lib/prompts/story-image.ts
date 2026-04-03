@@ -1,14 +1,4 @@
-interface TextContentPart {
-  text: string;
-  type: "text";
-}
-
-interface ImageContentPart {
-  image: string;
-  type: "image";
-}
-
-type ContentPart = TextContentPart | ImageContentPart;
+import type { ImagePart, Prompt, TextPart } from "ai";
 
 interface CharacterRef {
   description: string;
@@ -28,11 +18,6 @@ interface StoryImagePromptInput {
   styleDescription: string;
 }
 
-interface StoryImagePromptOutput {
-  messages: { role: "user"; content: ContentPart[] }[];
-  system: string;
-}
-
 export function buildStoryImagePrompt({
   styleDescription,
   settingDescription,
@@ -42,7 +27,7 @@ export function buildStoryImagePrompt({
   characters,
   sceneDescription,
   previousFrameImage,
-}: StoryImagePromptInput): StoryImagePromptOutput {
+}: StoryImagePromptInput): Prompt {
   const systemParts = [
     "You are generating a story frame image for a visual story. Generate a single image that depicts the described scene.",
     `The image must adhere to the following style description for the overall story: ${styleDescription}`,
@@ -61,7 +46,7 @@ export function buildStoryImagePrompt({
     );
   }
 
-  const contentParts: ContentPart[] = [
+  const contentParts: (TextPart | ImagePart)[] = [
     { type: "text", text: textLines.join("\n") },
     { type: "image", image: locationImage },
   ];
@@ -81,9 +66,4 @@ export function buildStoryImagePrompt({
   };
 }
 
-export type {
-  CharacterRef,
-  ContentPart,
-  StoryImagePromptInput,
-  StoryImagePromptOutput,
-};
+export type { CharacterRef, StoryImagePromptInput };

@@ -59,7 +59,7 @@ export function AddNodePanel() {
   })();
 
   return (
-    <Panel position="top-right">
+    <Panel position="bottom-center">
       <div className="flex gap-2 rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-lg">
         <Button
           className="nodrag"

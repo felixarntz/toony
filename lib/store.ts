@@ -1,7 +1,7 @@
 import type { Edge, OnNodesChange } from "@xyflow/react";
 import { applyNodeChanges, MarkerType } from "@xyflow/react";
 import { create } from "zustand";
-import { computeLayoutPositions } from "@/lib/layout";
+import { computeLayoutPositions, resolveOverlap } from "@/lib/layout";
 import type {
   AppNode,
   CharacterNodeData,
@@ -143,8 +143,15 @@ function computeEdges(nodes: AppNode[]): Edge[] {
   );
 
   const edges: Edge[] = [];
-  const edgeStyle = { stroke: "#666" };
-  const markerEnd = { type: MarkerType.ArrowClosed, color: "#666" };
+  const makeMarker = (color: string) => ({
+    type: MarkerType.ArrowClosed,
+    color,
+    width: 20,
+    height: 20,
+  });
+  const defaultColor = "#666";
+  const edgeStyle = { stroke: defaultColor };
+  const markerEnd = makeMarker(defaultColor);
 
   for (const sourceId of ["style", "setting"]) {
     if (!nodeIds.includes(sourceId)) {
@@ -171,7 +178,7 @@ function computeEdges(nodes: AppNode[]): Edge[] {
         id: `${siData.locationId}->${siNode.id}`,
         source: siData.locationId,
         target: siNode.id,
-        markerEnd,
+        markerEnd: makeMarker("#f59e0b"),
         style: { stroke: "#f59e0b" },
       });
     }
@@ -182,7 +189,7 @@ function computeEdges(nodes: AppNode[]): Edge[] {
           id: `${charId}->${siNode.id}`,
           source: charId,
           target: siNode.id,
-          markerEnd,
+          markerEnd: makeMarker("#14b8a6"),
           style: { stroke: "#14b8a6" },
         });
       }
@@ -194,7 +201,7 @@ function computeEdges(nodes: AppNode[]): Edge[] {
       id: `${storyImageNodes[i].id}->${storyImageNodes[i + 1].id}`,
       source: storyImageNodes[i].id,
       target: storyImageNodes[i + 1].id,
-      markerEnd,
+      markerEnd: makeMarker("#a855f7"),
       style: { stroke: "#a855f7" },
     });
   }
@@ -206,7 +213,7 @@ function computeEdges(nodes: AppNode[]): Edge[] {
         id: `${siNode.id}->${movieNode.id}`,
         source: siNode.id,
         target: movieNode.id,
-        markerEnd,
+        markerEnd: makeMarker("#ec4899"),
         style: { stroke: "#ec4899" },
       });
     }
@@ -356,8 +363,29 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     set((state) => ({
       globalSettings: { ...state.globalSettings, videoModel: model },
     })),
-  onNodesChange: (changes) =>
-    set(setNodesWithEdges(applyNodeChanges(changes, get().nodes))),
+  onNodesChange: (changes) => {
+    let nodes = applyNodeChanges(changes, get().nodes);
+
+    const positionChanges = changes.filter(
+      (c): c is Extract<typeof c, { type: "position" }> =>
+        c.type === "position" && "dragging" in c && !c.dragging
+    );
+    if (positionChanges.length > 0) {
+      nodes = nodes.map((node) => {
+        const wasChanged = positionChanges.some((c) => c.id === node.id);
+        if (!wasChanged) {
+          return node;
+        }
+        const newPos = resolveOverlap({ movedNode: node, nodes });
+        if (newPos) {
+          return { ...node, position: newPos };
+        }
+        return node;
+      });
+    }
+
+    set(setNodesWithEdges(nodes));
+  },
   addLocationNode: () => {
     const { nodes } = get();
     const locationCount = nodes.filter((n) => n.type === "location").length;

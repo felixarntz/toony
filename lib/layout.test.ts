@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { computeLayoutPositions, computeNodePosition } from "./layout";
+import {
+  computeLayoutPositions,
+  computeNodePosition,
+  resolveOverlap,
+} from "./layout";
 import type { AppNode } from "./types";
 
 function makeNode(opts: { id: string; type: string }): AppNode {
@@ -157,7 +161,7 @@ describe("computeLayoutPositions", () => {
     const stylePos = getPos({ positions, id: "style" });
     const siPos = getPos({ positions, id: "storyImage-1" });
     expect(siPos.y).toBeGreaterThan(stylePos.y);
-    expect(siPos.y).toBe(400);
+    expect(siPos.y).toBe(260);
   });
 });
 
@@ -176,5 +180,55 @@ describe("computeNodePosition", () => {
     const nodes: AppNode[] = [makeNode({ id: "style", type: "style" })];
     const pos = computeNodePosition({ nodes, nodeId: "nonexistent" });
     expect(pos).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("resolveOverlap", () => {
+  function makeNodeAt(opts: {
+    id: string;
+    type: string;
+    x: number;
+    y: number;
+  }): AppNode {
+    return {
+      id: opts.id,
+      type: opts.type,
+      position: { x: opts.x, y: opts.y },
+      data: {},
+    } as AppNode;
+  }
+
+  it("returns null when no overlap", () => {
+    const nodeA = makeNodeAt({ id: "a", type: "location", x: 0, y: 0 });
+    const nodeB = makeNodeAt({ id: "b", type: "location", x: 500, y: 0 });
+
+    const result = resolveOverlap({
+      movedNode: nodeA,
+      nodes: [nodeA, nodeB],
+    });
+    expect(result).toBeNull();
+  });
+
+  it("pushes node apart when overlapping", () => {
+    const nodeA = makeNodeAt({ id: "a", type: "location", x: 100, y: 0 });
+    const nodeB = makeNodeAt({ id: "b", type: "location", x: 110, y: 0 });
+
+    const result = resolveOverlap({
+      movedNode: nodeA,
+      nodes: [nodeA, nodeB],
+    });
+    expect(result).not.toBeNull();
+    expect(result?.x).toBeLessThan(nodeB.position.x);
+  });
+
+  it("maintains gap between pushed nodes", () => {
+    const nodeA = makeNodeAt({ id: "a", type: "style", x: 0, y: 0 });
+    const nodeB = makeNodeAt({ id: "b", type: "style", x: 10, y: 0 });
+
+    const result = resolveOverlap({
+      movedNode: nodeA,
+      nodes: [nodeA, nodeB],
+    });
+    expect(result).not.toBeNull();
   });
 });

@@ -2,18 +2,16 @@
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
-import Image from "next/image";
 import { useCallback } from "react";
+import { ImageOverlay } from "@/components/canvas/image-overlay";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { STYLE_PRESET_DESCRIPTIONS } from "@/lib/constants";
 import { useFlowStore } from "@/lib/store";
-import type {
-  LocationNodeType,
-  SettingNodeData,
-  StyleNodeData,
-} from "@/lib/types";
+import {
+  getSettingDescription,
+  getStyleDescription,
+} from "@/lib/style-description";
+import type { LocationNodeType } from "@/lib/types";
 
 export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
   const setLocationDescription = useFlowStore((s) => s.setLocationDescription);
@@ -27,38 +25,28 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
   const nodes = useFlowStore((s) => s.nodes);
   const globalSettings = useFlowStore((s) => s.globalSettings);
 
+  const styleDescription = getStyleDescription({ nodes });
+  const settingDescription = getSettingDescription({ nodes });
+  const hasDescription = data.description.trim().length > 0;
+  const hasParentData =
+    styleDescription.trim().length > 0 && settingDescription.trim().length > 0;
+  const canGenerate = hasDescription && hasParentData && !data.isGenerating;
+
   const handleGenerate = useCallback(async () => {
-    if (!data.description.trim() || data.isGenerating) {
+    if (!canGenerate) {
       return;
     }
 
     setLocationIsGenerating({ nodeId: id, isGenerating: true });
 
     try {
-      const styleNode = nodes.find((n) => n.type === "style");
-      const settingNode = nodes.find((n) => n.type === "setting");
-
-      const styleData = styleNode?.data as StyleNodeData | undefined;
-      const settingData = settingNode?.data as SettingNodeData | undefined;
-
-      let styleDescription = "";
-      if (styleData) {
-        styleDescription =
-          styleData.preset === "custom"
-            ? styleData.customDescription
-            : (STYLE_PRESET_DESCRIPTIONS[
-                styleData.preset as Exclude<typeof styleData.preset, "custom">
-              ] ?? "");
-      }
-
-      const response = await fetch("/api/generate-image", {
+      const response = await fetch("/api/generate-location-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "location",
           locationDescription: data.description,
           styleDescription,
-          settingDescription: settingData?.description ?? "",
+          settingDescription,
           model: globalSettings.imageModel,
         }),
       });
@@ -72,16 +60,15 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
       setLocationIsGenerating({ nodeId: id, isGenerating: false });
     }
   }, [
+    canGenerate,
     data.description,
-    data.isGenerating,
     id,
-    nodes,
+    styleDescription,
+    settingDescription,
     globalSettings.imageModel,
     setLocationIsGenerating,
     setLocationGeneratedImage,
   ]);
-
-  const hasDescription = data.description.trim().length > 0;
 
   return (
     <div className="relative w-80 rounded-lg border border-amber-500/30 bg-zinc-900 p-4 shadow-lg">
@@ -107,25 +94,11 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
         value={data.description}
       />
 
-      {data.isGenerating && (
-        <div className="mb-3 overflow-hidden rounded">
-          <Skeleton className="h-44 w-full" />
-          <div className="flex items-center justify-center gap-2 py-2 text-xs text-zinc-400">
-            <Loader2 className="size-3 animate-spin" />
-            Generating...
-          </div>
-        </div>
-      )}
-
-      {!data.isGenerating && data.generatedImage && (
-        <div className="mb-3 overflow-hidden rounded">
-          <Image
+      {data.generatedImage && !data.isGenerating && (
+        <div className="nodrag mb-3 overflow-hidden rounded">
+          <ImageOverlay
             alt="Generated location"
-            className="w-full"
-            height={288}
             src={`data:image/png;base64,${data.generatedImage}`}
-            unoptimized
-            width={288}
           />
         </div>
       )}
@@ -134,7 +107,7 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
         {data.generatedImage && !data.isGenerating ? (
           <Button
             className="nodrag flex-1"
-            disabled={!hasDescription || data.isGenerating}
+            disabled={!canGenerate}
             onClick={handleGenerate}
             size="sm"
             variant="outline"
@@ -145,7 +118,7 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
         ) : (
           <Button
             className="nodrag flex-1"
-            disabled={!hasDescription || data.isGenerating}
+            disabled={!canGenerate}
             onClick={handleGenerate}
             size="sm"
           >
