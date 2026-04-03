@@ -30,6 +30,14 @@ export interface SettingNodeData {
   [key: string]: unknown;
 }
 
+export interface LocationNodeData {
+  description: string;
+  generatedImage: string | null;
+  isGenerating: boolean;
+  [key: string]: unknown;
+}
+
 export type StyleNodeType = Node<StyleNodeData, "style">;
 export type SettingNodeType = Node<SettingNodeData, "setting">;
-export type AppNode = StyleNodeType | SettingNodeType;
+export type LocationNodeType = Node<LocationNodeData, "location">;
+export type AppNode = StyleNodeType | SettingNodeType | LocationNodeType;

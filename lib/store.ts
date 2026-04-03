@@ -3,10 +3,13 @@ import { applyNodeChanges, MarkerType } from "@xyflow/react";
 import { create } from "zustand";
 import type {
   AppNode,
+  LocationNodeData,
   SettingNodeData,
   StyleNodeData,
   StylePreset,
 } from "@/lib/types";
+
+const MAX_LOCATION_NODES = 2;
 
 interface GlobalSettings {
   imageModel: string;
@@ -14,11 +17,26 @@ interface GlobalSettings {
 }
 
 interface FlowState {
+  addLocationNode: () => void;
   edges: Edge[];
+  getLocationCount: () => number;
   globalSettings: GlobalSettings;
   nodes: AppNode[];
   onNodesChange: OnNodesChange<AppNode>;
+  removeLocationNode: (opts: { nodeId: string }) => void;
   setCustomStyleDescription: (opts: { description: string }) => void;
+  setLocationDescription: (opts: {
+    nodeId: string;
+    description: string;
+  }) => void;
+  setLocationGeneratedImage: (opts: {
+    nodeId: string;
+    image: string | null;
+  }) => void;
+  setLocationIsGenerating: (opts: {
+    nodeId: string;
+    isGenerating: boolean;
+  }) => void;
   setSettingDescription: (opts: { description: string }) => void;
   setStylePreset: (opts: { preset: StylePreset }) => void;
 }
@@ -87,11 +105,26 @@ function updateSettingNode(
   });
 }
 
+function updateLocationNode(opts: {
+  nodes: AppNode[];
+  nodeId: string;
+  updater: (data: LocationNodeData) => LocationNodeData;
+}): AppNode[] {
+  return opts.nodes.map((node) => {
+    if (node.type === "location" && node.id === opts.nodeId) {
+      return { ...node, data: opts.updater(node.data as LocationNodeData) };
+    }
+    return node;
+  });
+}
+
 function setNodesWithEdges(
   nodes: AppNode[]
 ): Pick<FlowState, "edges" | "nodes"> {
   return { nodes, edges: computeEdges(nodes) };
 }
+
+let locationCounter = 0;
 
 export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: initialNodes,
@@ -100,8 +133,34 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     imageModel: "google/gemini-3-pro-image",
     videoModel: "google/veo-3.1-generate-001",
   },
+  getLocationCount: () =>
+    get().nodes.filter((n) => n.type === "location").length,
   onNodesChange: (changes) =>
     set(setNodesWithEdges(applyNodeChanges(changes, get().nodes))),
+  addLocationNode: () => {
+    const { nodes } = get();
+    const locationCount = nodes.filter((n) => n.type === "location").length;
+    if (locationCount >= MAX_LOCATION_NODES) {
+      return;
+    }
+    locationCounter++;
+    const newNode: AppNode = {
+      id: `location-${locationCounter}`,
+      type: "location",
+      position: { x: 100 + locationCount * 400, y: 300 },
+      data: {
+        description: "",
+        generatedImage: null,
+        isGenerating: false,
+      },
+    };
+    set(setNodesWithEdges([...nodes, newNode]));
+  },
+  removeLocationNode: ({ nodeId }) => {
+    const { nodes } = get();
+    const filtered = nodes.filter((n) => n.id !== nodeId);
+    set(setNodesWithEdges(filtered));
+  },
   setStylePreset: ({ preset }) =>
     set(
       setNodesWithEdges(updateStyleNode(get().nodes, (d) => ({ ...d, preset })))
@@ -121,6 +180,36 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         updateSettingNode(get().nodes, (d) => ({ ...d, description }))
       )
     ),
+  setLocationDescription: ({ nodeId, description }) =>
+    set(
+      setNodesWithEdges(
+        updateLocationNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, description }),
+        })
+      )
+    ),
+  setLocationGeneratedImage: ({ nodeId, image }) =>
+    set(
+      setNodesWithEdges(
+        updateLocationNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, generatedImage: image }),
+        })
+      )
+    ),
+  setLocationIsGenerating: ({ nodeId, isGenerating }) =>
+    set(
+      setNodesWithEdges(
+        updateLocationNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, isGenerating }),
+        })
+      )
+    ),
 }));
 
-export { computeEdges };
+export { computeEdges, MAX_LOCATION_NODES };
