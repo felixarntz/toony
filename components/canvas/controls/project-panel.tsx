@@ -1,8 +1,8 @@
 "use client";
 
 import { Panel } from "@xyflow/react";
-import { Download, Package, Upload } from "lucide-react";
-import { useRef } from "react";
+import { ChevronDown, Download, Package, Upload } from "lucide-react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   buildZipBlob,
@@ -15,6 +15,7 @@ import {
 import { useFlowStore } from "@/lib/store";
 
 export function ProjectPanel() {
+  const [expanded, setExpanded] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nodes = useFlowStore((s) => s.nodes);
 
@@ -70,46 +71,64 @@ export function ProjectPanel() {
 
   return (
     <Panel position="top-left">
-      <div className="flex items-center gap-2 rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)] p-2 backdrop-blur-sm">
-        <span className="font-medium text-foreground text-sm tracking-tight">
+      <div className="w-fit rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)] p-2 backdrop-blur-sm">
+        <button
+          className="flex cursor-pointer items-center gap-1 font-medium text-foreground/70 text-xs"
+          onClick={() => setExpanded((prev) => !prev)}
+          type="button"
+        >
           Toony
-        </span>
-        <span className="h-4 w-px bg-[var(--node-input-border)]" />
-        <Button
-          className="nodrag"
-          onClick={handleExportProject}
-          size="sm"
-          title="Export project as JSON"
-          variant="outline"
+          <ChevronDown
+            className={`size-3 transition-transform duration-200 ${expanded ? "" : "-rotate-90"}`}
+          />
+        </button>
+        <div
+          className="grid transition-[grid-template-rows,grid-template-columns] duration-200 ease-in-out"
+          style={{
+            gridTemplateRows: expanded ? "1fr" : "0fr",
+            gridTemplateColumns: expanded ? "1fr" : "0fr",
+          }}
         >
-          <Download className="size-3" />
-          Export Project
-        </Button>
-        <Button
-          className="nodrag"
-          onClick={handleImportProject}
-          size="sm"
-          title="Import project from JSON"
-          variant="outline"
-        >
-          <Upload className="size-3" />
-          Import Project
-        </Button>
-        <Button
-          className="nodrag"
-          disabled={!hasAssets}
-          onClick={handleExportAssets}
-          size="sm"
-          title={
-            hasAssets
-              ? "Export all generated assets as ZIP"
-              : "No generated assets to export"
-          }
-          variant="outline"
-        >
-          <Package className="size-3" />
-          Export Assets
-        </Button>
+          <div className="overflow-hidden">
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                className="nodrag w-full justify-start"
+                onClick={handleExportProject}
+                size="sm"
+                title="Export project as JSON"
+                variant="outline"
+              >
+                <Download className="size-3" />
+                Export Project
+              </Button>
+              <Button
+                className="nodrag w-full justify-start"
+                onClick={handleImportProject}
+                size="sm"
+                title="Import project from JSON"
+                variant="outline"
+              >
+                <Upload className="size-3" />
+                Import Project
+              </Button>
+              <Button
+                className="nodrag w-full justify-start"
+                disabled={!hasAssets}
+                onClick={handleExportAssets}
+                size="sm"
+                title={
+                  hasAssets
+                    ? "Export all generated assets as ZIP"
+                    : "No generated assets to export"
+                }
+                variant="outline"
+              >
+                <Package className="size-3" />
+                Export Assets
+              </Button>
+            </div>
+          </div>
+        </div>
         <input
           accept=".json"
           className="hidden"
