@@ -12,8 +12,8 @@ export const NODE_WIDTHS: Record<string, number> = {
 export const NODE_HEIGHTS: Record<string, number> = {
   style: 200,
   setting: 200,
-  location: 400,
-  character: 500,
+  location: 450,
+  character: 550,
   storyImage: 550,
   movie: 350,
 };

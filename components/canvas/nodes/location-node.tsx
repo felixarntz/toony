@@ -14,6 +14,7 @@ import {
 import type { LocationNodeType } from "@/lib/types";
 
 export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
+  const setLocationName = useFlowStore((s) => s.setLocationName);
   const setLocationDescription = useFlowStore((s) => s.setLocationDescription);
   const setLocationGeneratedImage = useFlowStore(
     (s) => s.setLocationGeneratedImage
@@ -77,6 +78,19 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
       <div className="mb-3 font-semibold text-amber-400 text-sm uppercase tracking-wide">
         Location
       </div>
+      <label
+        className="mb-1 block text-xs text-zinc-400"
+        htmlFor={`location-name-${id}`}
+      >
+        Name
+      </label>
+      <input
+        className="nodrag mb-3 w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none"
+        id={`location-name-${id}`}
+        onChange={(e) => setLocationName({ nodeId: id, name: e.target.value })}
+        placeholder="e.g. Forest Clearing"
+        value={data.name}
+      />
       <label
         className="mb-1 block text-xs text-zinc-400"
         htmlFor={`location-desc-${id}`}

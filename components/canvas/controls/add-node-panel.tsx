@@ -60,12 +60,12 @@ export function AddNodePanel() {
 
   return (
     <Panel position="bottom-center">
-      <div className="flex gap-2 rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-lg">
+      <div className="flex gap-1 rounded-lg border border-zinc-700 bg-zinc-900 p-1.5 shadow-lg">
         <Button
           className="nodrag"
           disabled={locationLimitReached}
           onClick={addLocationNode}
-          size="sm"
+          size="icon-sm"
           title={
             locationLimitReached
               ? `Maximum ${MAX_LOCATION_NODES} locations reached`
@@ -73,15 +73,14 @@ export function AddNodePanel() {
           }
           variant="outline"
         >
-          <MapPin className="size-3" />
-          Location{" "}
-          {locationLimitReached && `(${locationCount}/${MAX_LOCATION_NODES})`}
+          <MapPin className="size-4" />
+          <span className="sr-only">Location</span>
         </Button>
         <Button
           className="nodrag"
           disabled={characterLimitReached}
           onClick={addCharacterNode}
-          size="sm"
+          size="icon-sm"
           title={
             characterLimitReached
               ? `Maximum ${MAX_CHARACTER_NODES} characters reached`
@@ -89,34 +88,30 @@ export function AddNodePanel() {
           }
           variant="outline"
         >
-          <User className="size-3" />
-          Character{" "}
-          {characterLimitReached &&
-            `(${characterCount}/${MAX_CHARACTER_NODES})`}
+          <User className="size-4" />
+          <span className="sr-only">Character</span>
         </Button>
         <Button
           className="nodrag"
           disabled={storyImageDisabled}
           onClick={addStoryImageNode}
-          size="sm"
+          size="icon-sm"
           title={storyImageTitle}
           variant="outline"
         >
-          <Film className="size-3" />
-          Story Image{" "}
-          {storyImageLimitReached &&
-            `(${storyImageCount}/${MAX_STORY_IMAGE_NODES})`}
+          <Film className="size-4" />
+          <span className="sr-only">Story Image</span>
         </Button>
         <Button
           className="nodrag"
           disabled={movieDisabled}
           onClick={addMovieNode}
-          size="sm"
+          size="icon-sm"
           title={movieTitle}
           variant="outline"
         >
-          <Clapperboard className="size-3" />
-          Movie {movieLimitReached && `(${movieCount}/${MAX_MOVIE_NODES})`}
+          <Clapperboard className="size-4" />
+          <span className="sr-only">Movie</span>
         </Button>
       </div>
     </Panel>

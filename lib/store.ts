@@ -55,6 +55,7 @@ interface FlowState {
     nodeId: string;
     isGenerating: boolean;
   }) => void;
+  setCharacterName: (opts: { nodeId: string; name: string }) => void;
   setCustomStyleDescription: (opts: { description: string }) => void;
   setImageModel: (opts: { model: string }) => void;
   setLocationDescription: (opts: {
@@ -69,6 +70,7 @@ interface FlowState {
     nodeId: string;
     isGenerating: boolean;
   }) => void;
+  setLocationName: (opts: { nodeId: string; name: string }) => void;
   setMovieGeneratedVideoUrl: (opts: {
     nodeId: string;
     url: string | null;
@@ -398,6 +400,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       type: "location",
       position: { x: 0, y: 0 },
       data: {
+        name: "",
         description: "",
         generatedImage: null,
         isGenerating: false,
@@ -424,6 +427,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       type: "character",
       position: { x: 0, y: 0 },
       data: {
+        name: "",
         description: "",
         frontalImage: null,
         sideImage: null,
@@ -524,6 +528,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         })
       )
     ),
+  setCharacterName: ({ nodeId, name }) =>
+    set(
+      setNodesWithEdges(
+        updateCharacterNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, name }),
+        })
+      )
+    ),
   setMovieGeneratedVideoUrl: ({ nodeId, url }) =>
     set(
       setNodesWithEdges(
@@ -600,6 +614,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           nodes: get().nodes,
           nodeId,
           updater: (d) => ({ ...d, isGenerating }),
+        })
+      )
+    ),
+  setLocationName: ({ nodeId, name }) =>
+    set(
+      setNodesWithEdges(
+        updateLocationNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, name }),
         })
       )
     ),

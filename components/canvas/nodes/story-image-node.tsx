@@ -97,7 +97,7 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
           }
           const charData = charNode.data as CharacterNodeData;
           return {
-            name: charData.description.split(".")[0].trim() || "Character",
+            name: charData.name || "Character",
             description: charData.description,
             frontalImage: charData.frontalImage ?? "",
             sideImage: charData.sideImage ?? "",
@@ -111,8 +111,7 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
         body: JSON.stringify({
           styleDescription,
           settingDescription,
-          locationName:
-            locationData?.description.split(".")[0].trim() ?? "Location",
+          locationName: locationData?.name || "Location",
           locationDescription: locationData?.description ?? "",
           locationImage: locationData?.generatedImage ?? "",
           characters,
@@ -187,9 +186,7 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
           <SelectContent>
             {completedLocations.map((loc) => (
               <SelectItem key={loc.id} value={loc.id}>
-                {(loc.data as LocationNodeData).description
-                  .split(".")[0]
-                  .trim() || loc.id}
+                {(loc.data as LocationNodeData).name || loc.id}
               </SelectItem>
             ))}
           </SelectContent>
@@ -213,9 +210,7 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
                   id={`story-char-${id}-${char.id}`}
                   onCheckedChange={() => handleCharacterToggle(char.id)}
                 />
-                <span className="truncate">
-                  {charData.description.split(".")[0].trim() || char.id}
-                </span>
+                <span className="truncate">{charData.name || char.id}</span>
               </label>
             );
           })}

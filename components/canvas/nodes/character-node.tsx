@@ -14,6 +14,7 @@ import {
 import type { CharacterNodeType } from "@/lib/types";
 
 export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
+  const setCharacterName = useFlowStore((s) => s.setCharacterName);
   const setCharacterDescription = useFlowStore(
     (s) => s.setCharacterDescription
   );
@@ -102,6 +103,19 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
       <div className="mb-3 font-semibold text-sm text-teal-400 uppercase tracking-wide">
         Character
       </div>
+      <label
+        className="mb-1 block text-xs text-zinc-400"
+        htmlFor={`character-name-${id}`}
+      >
+        Name
+      </label>
+      <input
+        className="nodrag mb-3 w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-teal-500 focus:outline-none"
+        id={`character-name-${id}`}
+        onChange={(e) => setCharacterName({ nodeId: id, name: e.target.value })}
+        placeholder="e.g. Luna"
+        value={data.name}
+      />
       <label
         className="mb-1 block text-xs text-zinc-400"
         htmlFor={`character-desc-${id}`}

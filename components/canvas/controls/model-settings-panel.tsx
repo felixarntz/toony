@@ -32,7 +32,7 @@ export function ModelSettingsPanel() {
   const setVideoModel = useFlowStore((s) => s.setVideoModel);
 
   return (
-    <Panel position="bottom-right">
+    <Panel position="top-right">
       <div className="flex items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-lg">
         <Settings className="size-4 shrink-0 text-zinc-400" />
         <div className="nodrag flex items-center gap-1.5">

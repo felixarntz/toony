@@ -34,6 +34,7 @@ export interface LocationNodeData {
   description: string;
   generatedImage: string | null;
   isGenerating: boolean;
+  name: string;
   [key: string]: unknown;
 }
 
@@ -41,6 +42,7 @@ export interface CharacterNodeData {
   description: string;
   frontalImage: string | null;
   isGenerating: boolean;
+  name: string;
   sideImage: string | null;
   [key: string]: unknown;
 }
