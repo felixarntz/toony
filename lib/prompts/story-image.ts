@@ -44,9 +44,9 @@ export function buildStoryImagePrompt({
   previousFrameImage,
 }: StoryImagePromptInput): StoryImagePromptOutput {
   const systemParts = [
-    styleDescription,
-    settingDescription,
     "You are generating a story frame image for a visual story. Generate a single image that depicts the described scene.",
+    `The image must adhere to the following style description for the overall story: ${styleDescription}`,
+    `The story is set in this overall setting: ${settingDescription}`,
   ];
 
   const textLines = [

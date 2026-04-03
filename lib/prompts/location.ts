@@ -20,9 +20,9 @@ export function buildLocationPrompt({
   locationDescription,
 }: LocationPromptInput): LocationPromptOutput {
   const systemParts = [
-    styleDescription,
-    settingDescription,
     "You are generating a reference image of a location for a visual story. Generate a single image that depicts this location.",
+    `The image must adhere to the following style description: ${styleDescription}`,
+    `The location is part of this overall setting for the story: ${settingDescription}`,
   ];
 
   return {

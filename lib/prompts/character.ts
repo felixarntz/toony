@@ -37,9 +37,9 @@ export function buildCharacterPrompt({
   const angleInstruction = ANGLE_INSTRUCTIONS[angle];
 
   const systemParts = [
-    styleDescription,
-    settingDescription,
     `You are generating a character reference portrait for a visual story. Generate a single ${angleLabel} portrait of this character.`,
+    `The image must adhere to the following style description: ${styleDescription}`,
+    `The character will be part of a story in this overall setting: ${settingDescription}`,
   ];
 
   return {
