@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Toony - Work in Progress
 
-## Getting Started
+A visual canvas for crafting animated stories powered by AI. Define your art style, characters, and locations, then compose story scenes that get turned into AI-generated images and videos — all through an intuitive node-based editor.
 
-First, run the development server:
+## Why it's cool
+
+Toony treats storytelling as a graph: connect style, character, location, and scene nodes on a canvas, and AI fills in the visuals. Change your art style from Ghibli to Pixar, swap a character, and every downstream image regenerates. It turns the creative pipeline from "prompt and pray" into something modular and composable.
+
+## What it showcases
+
+- **AI SDK** — uses the Vercel AI SDK for structured generation and streaming across multiple AI providers
+- **AI Gateway** — routes model calls through the Vercel AI Gateway for unified access to image and video models
+- **Advanced image generation** — produces character reference sheets, location art, and full story scenes with style-consistent prompts
+- **Video generation** — stitches story images into animated clips, bringing static scenes to life
+- **Node-based UI** — built on React Flow, giving users a visual, non-linear way to assemble stories
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+bun install
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to start building your story.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy your own
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ffelixarntz%2Ftoony)
