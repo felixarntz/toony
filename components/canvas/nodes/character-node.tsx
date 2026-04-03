@@ -3,6 +3,7 @@
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { useCallback } from "react";
+import { EditableNodeLabel } from "@/components/canvas/editable-node-label";
 import { ImageOverlay } from "@/components/canvas/image-overlay";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
 import { Button } from "@/components/ui/button";
@@ -100,21 +101,11 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
     <div className="relative w-80 rounded-lg border border-teal-500/30 bg-zinc-900 p-4 shadow-lg">
       <Handle className="!bg-teal-500" position={Position.Top} type="target" />
       <RemoveNodeButton onClick={() => removeCharacterNode({ nodeId: id })} />
-      <div className="mb-3 font-semibold text-sm text-teal-400 uppercase tracking-wide">
-        Character
-      </div>
-      <label
-        className="mb-1 block text-xs text-zinc-400"
-        htmlFor={`character-name-${id}`}
-      >
-        Name
-      </label>
-      <input
-        className="nodrag mb-3 w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-teal-500 focus:outline-none"
-        id={`character-name-${id}`}
-        onChange={(e) => setCharacterName({ nodeId: id, name: e.target.value })}
-        placeholder="e.g. Luna"
-        value={data.name}
+      <EditableNodeLabel
+        className="text-teal-400"
+        name={data.name}
+        onNameChange={(name) => setCharacterName({ nodeId: id, name })}
+        placeholder="Character"
       />
       <label
         className="mb-1 block text-xs text-zinc-400"

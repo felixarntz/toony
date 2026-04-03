@@ -1,7 +1,7 @@
 "use client";
 
 import { Panel } from "@xyflow/react";
-import { Settings } from "lucide-react";
+import { ImageIcon, Video } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -33,23 +33,21 @@ export function ModelSettingsPanel() {
 
   return (
     <Panel position="top-right">
-      <div className="flex items-center gap-3 rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-lg">
-        <Settings className="size-4 shrink-0 text-zinc-400" />
-        <div className="nodrag flex items-center gap-1.5">
-          <label
-            className="whitespace-nowrap text-xs text-zinc-400"
-            htmlFor="image-model-select"
-          >
-            Image
+      <div className="flex flex-col gap-2 rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-lg">
+        <div className="font-medium text-xs text-zinc-400">Models</div>
+        <div className="nodrag">
+          <label className="sr-only" htmlFor="image-model-select">
+            Image Model
           </label>
           <Select
             onValueChange={(value) => setImageModel({ model: value })}
             value={globalSettings.imageModel}
           >
             <SelectTrigger
-              className="h-7 w-44 border-zinc-700 bg-zinc-800 text-xs text-zinc-200"
+              className="h-7 w-full border-zinc-700 bg-zinc-800 text-xs text-zinc-200"
               id="image-model-select"
             >
+              <ImageIcon className="size-3.5 shrink-0 text-zinc-400" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -61,21 +59,19 @@ export function ModelSettingsPanel() {
             </SelectContent>
           </Select>
         </div>
-        <div className="nodrag flex items-center gap-1.5">
-          <label
-            className="whitespace-nowrap text-xs text-zinc-400"
-            htmlFor="video-model-select"
-          >
-            Video
+        <div className="nodrag">
+          <label className="sr-only" htmlFor="video-model-select">
+            Video Model
           </label>
           <Select
             onValueChange={(value) => setVideoModel({ model: value })}
             value={globalSettings.videoModel}
           >
             <SelectTrigger
-              className="h-7 w-44 border-zinc-700 bg-zinc-800 text-xs text-zinc-200"
+              className="h-7 w-full border-zinc-700 bg-zinc-800 text-xs text-zinc-200"
               id="video-model-select"
             >
+              <Video className="size-3.5 shrink-0 text-zinc-400" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

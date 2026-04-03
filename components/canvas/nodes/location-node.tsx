@@ -3,6 +3,7 @@
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { useCallback } from "react";
+import { EditableNodeLabel } from "@/components/canvas/editable-node-label";
 import { ImageOverlay } from "@/components/canvas/image-overlay";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
 import { Button } from "@/components/ui/button";
@@ -75,21 +76,11 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
     <div className="relative w-80 rounded-lg border border-amber-500/30 bg-zinc-900 p-4 shadow-lg">
       <Handle className="!bg-amber-500" position={Position.Top} type="target" />
       <RemoveNodeButton onClick={() => removeLocationNode({ nodeId: id })} />
-      <div className="mb-3 font-semibold text-amber-400 text-sm uppercase tracking-wide">
-        Location
-      </div>
-      <label
-        className="mb-1 block text-xs text-zinc-400"
-        htmlFor={`location-name-${id}`}
-      >
-        Name
-      </label>
-      <input
-        className="nodrag mb-3 w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none"
-        id={`location-name-${id}`}
-        onChange={(e) => setLocationName({ nodeId: id, name: e.target.value })}
-        placeholder="e.g. Forest Clearing"
-        value={data.name}
+      <EditableNodeLabel
+        className="text-amber-400"
+        name={data.name}
+        onNameChange={(name) => setLocationName({ nodeId: id, name })}
+        placeholder="Location"
       />
       <label
         className="mb-1 block text-xs text-zinc-400"
