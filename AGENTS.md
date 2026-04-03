@@ -13,12 +13,19 @@ Available scripts for this project, run via `bun`:
 - `bun start` — Serve the production build
 - `bun check` — Check code for linting and formatting issues
 - `bun fix` — Auto-fix linting and formatting issues
+- `bun run test` — Run tests via Vitest
 - `bun typecheck` — Run TypeScript type checking
 - `bun run doctor` — Diagnose the Ultracite/Biome setup
 
-Note: `build` and `doctor` need `bun run` since they conflict with built-in bun commands.
+Note: `build`, `test`, and `doctor` need `bun run` since they conflict with built-in bun commands.
 
 In general, default to using Bun instead of Node.js.
+
+# Verification
+
+You have access to `agent-browser`, and you can use the skill of the same name to learn how to use it. When the dev server is running, you can access the app you're building on `http://localhost:3000`.
+
+Use `--headed` mode so the user can follow along as you are verifying and debugging changes.
 
 # shadcn Guidelines
 
