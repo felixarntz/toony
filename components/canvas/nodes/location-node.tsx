@@ -100,7 +100,7 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
           onChange={(e) =>
             setLocationDescription({ nodeId: id, description: e.target.value })
           }
-          placeholder="Describe this location..."
+          placeholder="Describe a location where the scene is set..."
           rows={3}
           value={data.description}
         />

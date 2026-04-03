@@ -125,7 +125,7 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
           onChange={(e) =>
             setCharacterDescription({ nodeId: id, description: e.target.value })
           }
-          placeholder="Describe this character..."
+          placeholder="Describe a character for the story..."
           rows={3}
           value={data.description}
         />
