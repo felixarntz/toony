@@ -10,9 +10,13 @@ import "@xyflow/react/dist/style.css";
 import { useFlowStore } from "@/lib/store";
 import type { AppNode } from "@/lib/types";
 import { AddNodePanel } from "./controls/add-node-panel";
+import { ModelSettingsPanel } from "./controls/model-settings-panel";
+import { ProjectPanel } from "./controls/project-panel";
 import { CharacterNode } from "./nodes/character-node";
 import { LocationNode } from "./nodes/location-node";
+import { MovieNode } from "./nodes/movie-node";
 import { SettingNode } from "./nodes/setting-node";
+import { StoryImageNode } from "./nodes/story-image-node";
 import { StyleNode } from "./nodes/style-node";
 
 const nodeTypes = {
@@ -20,6 +24,8 @@ const nodeTypes = {
   setting: SettingNode,
   location: LocationNode,
   character: CharacterNode,
+  storyImage: StoryImageNode,
+  movie: MovieNode,
 };
 
 export function Canvas() {
@@ -41,6 +47,8 @@ export function Canvas() {
         <Background color="#333" gap={20} variant={BackgroundVariant.Dots} />
         <Controls />
         <AddNodePanel />
+        <ModelSettingsPanel />
+        <ProjectPanel />
       </ReactFlow>
     </div>
   );

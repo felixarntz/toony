@@ -1,17 +1,22 @@
 import type { Edge, OnNodesChange } from "@xyflow/react";
 import { applyNodeChanges, MarkerType } from "@xyflow/react";
 import { create } from "zustand";
+import { computeLayoutPositions } from "@/lib/layout";
 import type {
   AppNode,
   CharacterNodeData,
   LocationNodeData,
+  MovieNodeData,
   SettingNodeData,
+  StoryImageNodeData,
   StyleNodeData,
   StylePreset,
 } from "@/lib/types";
 
 const MAX_LOCATION_NODES = 2;
 const MAX_CHARACTER_NODES = 3;
+const MAX_STORY_IMAGE_NODES = 6;
+const MAX_MOVIE_NODES = 1;
 
 interface GlobalSettings {
   imageModel: string;
@@ -21,14 +26,22 @@ interface GlobalSettings {
 interface FlowState {
   addCharacterNode: () => void;
   addLocationNode: () => void;
+  addMovieNode: () => void;
+  addStoryImageNode: () => void;
+  canAddMovie: () => boolean;
+  canAddStoryImage: () => boolean;
   edges: Edge[];
   getCharacterCount: () => number;
   getLocationCount: () => number;
+  getMovieCount: () => number;
+  getStoryImageCount: () => number;
   globalSettings: GlobalSettings;
   nodes: AppNode[];
   onNodesChange: OnNodesChange<AppNode>;
   removeCharacterNode: (opts: { nodeId: string }) => void;
   removeLocationNode: (opts: { nodeId: string }) => void;
+  removeMovieNode: (opts: { nodeId: string }) => void;
+  removeStoryImageNode: (opts: { nodeId: string }) => void;
   setCharacterDescription: (opts: {
     nodeId: string;
     description: string;
@@ -43,6 +56,7 @@ interface FlowState {
     isGenerating: boolean;
   }) => void;
   setCustomStyleDescription: (opts: { description: string }) => void;
+  setImageModel: (opts: { model: string }) => void;
   setLocationDescription: (opts: {
     nodeId: string;
     description: string;
@@ -55,24 +69,72 @@ interface FlowState {
     nodeId: string;
     isGenerating: boolean;
   }) => void;
+  setMovieGeneratedVideoUrl: (opts: {
+    nodeId: string;
+    url: string | null;
+  }) => void;
+  setMovieIsGenerating: (opts: {
+    nodeId: string;
+    isGenerating: boolean;
+  }) => void;
+  setMoviePhase: (opts: {
+    nodeId: string;
+    phase: MovieNodeData["phase"];
+  }) => void;
   setSettingDescription: (opts: { description: string }) => void;
+  setStoryImageCharacterIds: (opts: {
+    nodeId: string;
+    characterIds: string[];
+  }) => void;
+  setStoryImageGeneratedImage: (opts: {
+    nodeId: string;
+    image: string | null;
+  }) => void;
+  setStoryImageIsGenerating: (opts: {
+    nodeId: string;
+    isGenerating: boolean;
+  }) => void;
+  setStoryImageLocationId: (opts: {
+    nodeId: string;
+    locationId: string | null;
+  }) => void;
+  setStoryImageSceneDescription: (opts: {
+    nodeId: string;
+    sceneDescription: string;
+  }) => void;
   setStylePreset: (opts: { preset: StylePreset }) => void;
+  setVideoModel: (opts: { model: string }) => void;
 }
 
-const initialNodes: AppNode[] = [
+function applyLayoutPositions(opts: { nodes: AppNode[] }): AppNode[] {
+  const positions = computeLayoutPositions({ nodes: opts.nodes });
+  return opts.nodes.map((node) => {
+    const pos = positions.get(node.id);
+    if (pos) {
+      return { ...node, position: pos };
+    }
+    return node;
+  });
+}
+
+const baseInitialNodes: AppNode[] = [
   {
     id: "style",
     type: "style",
-    position: { x: 100, y: 50 },
+    position: { x: 0, y: 0 },
     data: { preset: "ghibli-anime", customDescription: "" },
   },
   {
     id: "setting",
     type: "setting",
-    position: { x: 500, y: 50 },
+    position: { x: 0, y: 0 },
     data: { description: "" },
   },
 ];
+
+const initialNodes: AppNode[] = applyLayoutPositions({
+  nodes: baseInitialNodes,
+});
 
 function computeEdges(nodes: AppNode[]): Edge[] {
   const nodeIds = nodes.map((n) => n.id);
@@ -81,6 +143,9 @@ function computeEdges(nodes: AppNode[]): Edge[] {
   );
 
   const edges: Edge[] = [];
+  const edgeStyle = { stroke: "#666" };
+  const markerEnd = { type: MarkerType.ArrowClosed, color: "#666" };
+
   for (const sourceId of ["style", "setting"]) {
     if (!nodeIds.includes(sourceId)) {
       continue;
@@ -90,8 +155,59 @@ function computeEdges(nodes: AppNode[]): Edge[] {
         id: `${sourceId}->${targetId}`,
         source: sourceId,
         target: targetId,
-        markerEnd: { type: MarkerType.ArrowClosed, color: "#666" },
-        style: { stroke: "#666" },
+        markerEnd,
+        style: edgeStyle,
+      });
+    }
+  }
+
+  const storyImageNodes = nodes.filter((n) => n.type === "storyImage");
+
+  for (const siNode of storyImageNodes) {
+    const siData = siNode.data as StoryImageNodeData;
+
+    if (siData.locationId && nodeIds.includes(siData.locationId)) {
+      edges.push({
+        id: `${siData.locationId}->${siNode.id}`,
+        source: siData.locationId,
+        target: siNode.id,
+        markerEnd,
+        style: { stroke: "#f59e0b" },
+      });
+    }
+
+    for (const charId of siData.characterIds) {
+      if (nodeIds.includes(charId)) {
+        edges.push({
+          id: `${charId}->${siNode.id}`,
+          source: charId,
+          target: siNode.id,
+          markerEnd,
+          style: { stroke: "#14b8a6" },
+        });
+      }
+    }
+  }
+
+  for (let i = 0; i < storyImageNodes.length - 1; i++) {
+    edges.push({
+      id: `${storyImageNodes[i].id}->${storyImageNodes[i + 1].id}`,
+      source: storyImageNodes[i].id,
+      target: storyImageNodes[i + 1].id,
+      markerEnd,
+      style: { stroke: "#a855f7" },
+    });
+  }
+
+  const movieNode = nodes.find((n) => n.type === "movie");
+  if (movieNode) {
+    for (const siNode of storyImageNodes) {
+      edges.push({
+        id: `${siNode.id}->${movieNode.id}`,
+        source: siNode.id,
+        target: movieNode.id,
+        markerEnd,
+        style: { stroke: "#ec4899" },
       });
     }
   }
@@ -149,6 +265,35 @@ function updateCharacterNode(opts: {
   });
 }
 
+function updateStoryImageNode(opts: {
+  nodes: AppNode[];
+  nodeId: string;
+  updater: (data: StoryImageNodeData) => StoryImageNodeData;
+}): AppNode[] {
+  return opts.nodes.map((node) => {
+    if (node.type === "storyImage" && node.id === opts.nodeId) {
+      return {
+        ...node,
+        data: opts.updater(node.data as StoryImageNodeData),
+      };
+    }
+    return node;
+  });
+}
+
+function updateMovieNode(opts: {
+  nodes: AppNode[];
+  nodeId: string;
+  updater: (data: MovieNodeData) => MovieNodeData;
+}): AppNode[] {
+  return opts.nodes.map((node) => {
+    if (node.type === "movie" && node.id === opts.nodeId) {
+      return { ...node, data: opts.updater(node.data as MovieNodeData) };
+    }
+    return node;
+  });
+}
+
 function setNodesWithEdges(
   nodes: AppNode[]
 ): Pick<FlowState, "edges" | "nodes"> {
@@ -156,7 +301,8 @@ function setNodesWithEdges(
 }
 
 let locationCounter = 0;
-let characterCounter = 0; // biome-ignore lint: must be mutable
+let characterCounter = 0;
+let storyImageCounter = 0;
 
 export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: initialNodes,
@@ -169,6 +315,47 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     get().nodes.filter((n) => n.type === "location").length,
   getCharacterCount: () =>
     get().nodes.filter((n) => n.type === "character").length,
+  getStoryImageCount: () =>
+    get().nodes.filter((n) => n.type === "storyImage").length,
+  getMovieCount: () => get().nodes.filter((n) => n.type === "movie").length,
+  canAddMovie: () => {
+    const { nodes } = get();
+    const hasCompletedStoryImage = nodes.some(
+      (n) =>
+        n.type === "storyImage" &&
+        (n.data as StoryImageNodeData).generatedImage !== null
+    );
+    const movieCount = nodes.filter((n) => n.type === "movie").length;
+    return hasCompletedStoryImage && movieCount < MAX_MOVIE_NODES;
+  },
+  canAddStoryImage: () => {
+    const { nodes } = get();
+    const hasCompletedLocation = nodes.some(
+      (n) =>
+        n.type === "location" &&
+        (n.data as LocationNodeData).generatedImage !== null
+    );
+    const hasCompletedCharacter = nodes.some(
+      (n) =>
+        n.type === "character" &&
+        (n.data as CharacterNodeData).frontalImage !== null &&
+        (n.data as CharacterNodeData).sideImage !== null
+    );
+    const storyImageCount = nodes.filter((n) => n.type === "storyImage").length;
+    return (
+      hasCompletedLocation &&
+      hasCompletedCharacter &&
+      storyImageCount < MAX_STORY_IMAGE_NODES
+    );
+  },
+  setImageModel: ({ model }) =>
+    set((state) => ({
+      globalSettings: { ...state.globalSettings, imageModel: model },
+    })),
+  setVideoModel: ({ model }) =>
+    set((state) => ({
+      globalSettings: { ...state.globalSettings, videoModel: model },
+    })),
   onNodesChange: (changes) =>
     set(setNodesWithEdges(applyNodeChanges(changes, get().nodes))),
   addLocationNode: () => {
@@ -181,14 +368,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     const newNode: AppNode = {
       id: `location-${locationCounter}`,
       type: "location",
-      position: { x: 100 + locationCount * 400, y: 300 },
+      position: { x: 0, y: 0 },
       data: {
         description: "",
         generatedImage: null,
         isGenerating: false,
       },
     };
-    set(setNodesWithEdges([...nodes, newNode]));
+    set(
+      setNodesWithEdges(applyLayoutPositions({ nodes: [...nodes, newNode] }))
+    );
   },
   removeLocationNode: ({ nodeId }) => {
     const { nodes } = get();
@@ -205,7 +394,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     const newNode: AppNode = {
       id: `character-${characterCounter}`,
       type: "character",
-      position: { x: 100 + characterCount * 400, y: 550 },
+      position: { x: 0, y: 0 },
       data: {
         description: "",
         frontalImage: null,
@@ -213,9 +402,66 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         isGenerating: false,
       },
     };
-    set(setNodesWithEdges([...nodes, newNode]));
+    set(
+      setNodesWithEdges(applyLayoutPositions({ nodes: [...nodes, newNode] }))
+    );
   },
   removeCharacterNode: ({ nodeId }) => {
+    const { nodes } = get();
+    const filtered = nodes.filter((n) => n.id !== nodeId);
+    set(setNodesWithEdges(filtered));
+  },
+  addStoryImageNode: () => {
+    const state = get();
+    if (!state.canAddStoryImage()) {
+      return;
+    }
+    storyImageCounter++;
+    const newNode: AppNode = {
+      id: `storyImage-${storyImageCounter}`,
+      type: "storyImage",
+      position: { x: 0, y: 0 },
+      data: {
+        locationId: null,
+        characterIds: [],
+        sceneDescription: "",
+        generatedImage: null,
+        isGenerating: false,
+      },
+    };
+    set(
+      setNodesWithEdges(
+        applyLayoutPositions({ nodes: [...state.nodes, newNode] })
+      )
+    );
+  },
+  removeStoryImageNode: ({ nodeId }) => {
+    const { nodes } = get();
+    const filtered = nodes.filter((n) => n.id !== nodeId);
+    set(setNodesWithEdges(filtered));
+  },
+  addMovieNode: () => {
+    const state = get();
+    if (!state.canAddMovie()) {
+      return;
+    }
+    const newNode: AppNode = {
+      id: "movie",
+      type: "movie",
+      position: { x: 0, y: 0 },
+      data: {
+        generatedVideoUrl: null,
+        isGenerating: false,
+        phase: "idle",
+      },
+    };
+    set(
+      setNodesWithEdges(
+        applyLayoutPositions({ nodes: [...state.nodes, newNode] })
+      )
+    );
+  },
+  removeMovieNode: ({ nodeId }) => {
     const { nodes } = get();
     const filtered = nodes.filter((n) => n.id !== nodeId);
     set(setNodesWithEdges(filtered));
@@ -247,6 +493,36 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           nodes: get().nodes,
           nodeId,
           updater: (d) => ({ ...d, isGenerating }),
+        })
+      )
+    ),
+  setMovieGeneratedVideoUrl: ({ nodeId, url }) =>
+    set(
+      setNodesWithEdges(
+        updateMovieNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, generatedVideoUrl: url }),
+        })
+      )
+    ),
+  setMovieIsGenerating: ({ nodeId, isGenerating }) =>
+    set(
+      setNodesWithEdges(
+        updateMovieNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, isGenerating }),
+        })
+      )
+    ),
+  setMoviePhase: ({ nodeId, phase }) =>
+    set(
+      setNodesWithEdges(
+        updateMovieNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, phase }),
         })
       )
     ),
@@ -299,9 +575,65 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         })
       )
     ),
+  setStoryImageLocationId: ({ nodeId, locationId }) =>
+    set(
+      setNodesWithEdges(
+        updateStoryImageNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, locationId }),
+        })
+      )
+    ),
+  setStoryImageCharacterIds: ({ nodeId, characterIds }) =>
+    set(
+      setNodesWithEdges(
+        updateStoryImageNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, characterIds }),
+        })
+      )
+    ),
+  setStoryImageSceneDescription: ({ nodeId, sceneDescription }) =>
+    set(
+      setNodesWithEdges(
+        updateStoryImageNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, sceneDescription }),
+        })
+      )
+    ),
+  setStoryImageGeneratedImage: ({ nodeId, image }) =>
+    set(
+      setNodesWithEdges(
+        updateStoryImageNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, generatedImage: image }),
+        })
+      )
+    ),
+  setStoryImageIsGenerating: ({ nodeId, isGenerating }) =>
+    set(
+      setNodesWithEdges(
+        updateStoryImageNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, isGenerating }),
+        })
+      )
+    ),
 }));
 
-export { computeEdges, MAX_CHARACTER_NODES, MAX_LOCATION_NODES };
+export {
+  computeEdges,
+  MAX_CHARACTER_NODES,
+  MAX_LOCATION_NODES,
+  MAX_MOVIE_NODES,
+  MAX_STORY_IMAGE_NODES,
+};
 
 if ((import.meta as unknown as Record<string, unknown>).hot) {
   const hot = (import.meta as unknown as Record<string, unknown>).hot as {
@@ -312,10 +644,12 @@ if ((import.meta as unknown as Record<string, unknown>).hot) {
     data.storeState = useFlowStore.getState();
     data.locationCounter = locationCounter;
     data.characterCounter = characterCounter;
+    data.storyImageCounter = storyImageCounter;
   });
   if (hot.data?.storeState) {
     useFlowStore.setState(hot.data.storeState as FlowState);
     locationCounter = (hot.data.locationCounter as number) ?? 0;
     characterCounter = (hot.data.characterCounter as number) ?? 0;
+    storyImageCounter = (hot.data.storyImageCounter as number) ?? 0;
   }
 }

@@ -1,0 +1,180 @@
+import { describe, expect, it } from "vitest";
+import { computeLayoutPositions, computeNodePosition } from "./layout";
+import type { AppNode } from "./types";
+
+function makeNode(opts: { id: string; type: string }): AppNode {
+  return {
+    id: opts.id,
+    type: opts.type,
+    position: { x: 0, y: 0 },
+    data: {},
+  } as AppNode;
+}
+
+function getPos(opts: {
+  positions: Map<string, { x: number; y: number }>;
+  id: string;
+}): { x: number; y: number } {
+  const pos = opts.positions.get(opts.id);
+  if (!pos) {
+    throw new Error(`Position not found for node ${opts.id}`);
+  }
+  return pos;
+}
+
+describe("computeLayoutPositions", () => {
+  it("positions style and setting side by side on row 1", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const stylePos = getPos({ positions, id: "style" });
+    const settingPos = getPos({ positions, id: "setting" });
+    expect(stylePos.y).toBe(settingPos.y);
+    expect(settingPos.x).toBeGreaterThan(stylePos.x);
+  });
+
+  it("positions location nodes on row 2 below style/setting", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({ id: "location-1", type: "location" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const stylePos = getPos({ positions, id: "style" });
+    const locPos = getPos({ positions, id: "location-1" });
+    expect(locPos.y).toBeGreaterThan(stylePos.y);
+  });
+
+  it("positions character nodes on same row as location nodes", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({ id: "location-1", type: "location" }),
+      makeNode({ id: "character-1", type: "character" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const locPos = getPos({ positions, id: "location-1" });
+    const charPos = getPos({ positions, id: "character-1" });
+    expect(locPos.y).toBe(charPos.y);
+    expect(charPos.x).toBeGreaterThan(locPos.x);
+  });
+
+  it("positions story image nodes on row 3 below locations/characters", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({ id: "location-1", type: "location" }),
+      makeNode({ id: "character-1", type: "character" }),
+      makeNode({ id: "storyImage-1", type: "storyImage" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const charPos = getPos({ positions, id: "character-1" });
+    const siPos = getPos({ positions, id: "storyImage-1" });
+    expect(siPos.y).toBeGreaterThan(charPos.y);
+  });
+
+  it("positions movie node on row 4 below story images", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({ id: "storyImage-1", type: "storyImage" }),
+      makeNode({ id: "movie", type: "movie" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const siPos = getPos({ positions, id: "storyImage-1" });
+    const moviePos = getPos({ positions, id: "movie" });
+    expect(moviePos.y).toBeGreaterThan(siPos.y);
+  });
+
+  it("places multiple story images side by side", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({ id: "storyImage-1", type: "storyImage" }),
+      makeNode({ id: "storyImage-2", type: "storyImage" }),
+      makeNode({ id: "storyImage-3", type: "storyImage" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const si1 = getPos({ positions, id: "storyImage-1" });
+    const si2 = getPos({ positions, id: "storyImage-2" });
+    const si3 = getPos({ positions, id: "storyImage-3" });
+    expect(si1.y).toBe(si2.y);
+    expect(si2.y).toBe(si3.y);
+    expect(si2.x).toBeGreaterThan(si1.x);
+    expect(si3.x).toBeGreaterThan(si2.x);
+  });
+
+  it("places multiple locations and characters side by side on row 2", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({ id: "location-1", type: "location" }),
+      makeNode({ id: "location-2", type: "location" }),
+      makeNode({ id: "character-1", type: "character" }),
+      makeNode({ id: "character-2", type: "character" }),
+      makeNode({ id: "character-3", type: "character" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const loc1 = getPos({ positions, id: "location-1" });
+    const loc2 = getPos({ positions, id: "location-2" });
+    const char1 = getPos({ positions, id: "character-1" });
+    const char2 = getPos({ positions, id: "character-2" });
+    const char3 = getPos({ positions, id: "character-3" });
+
+    expect(loc1.y).toBe(loc2.y);
+    expect(loc1.y).toBe(char1.y);
+    expect(char1.y).toBe(char2.y);
+    expect(char2.y).toBe(char3.y);
+
+    expect(loc2.x).toBeGreaterThan(loc1.x);
+    expect(char1.x).toBeGreaterThan(loc2.x);
+    expect(char2.x).toBeGreaterThan(char1.x);
+    expect(char3.x).toBeGreaterThan(char2.x);
+  });
+
+  it("handles empty nodes array", () => {
+    const positions = computeLayoutPositions({ nodes: [] });
+    expect(positions.size).toBe(0);
+  });
+
+  it("skips empty rows", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({ id: "storyImage-1", type: "storyImage" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const stylePos = getPos({ positions, id: "style" });
+    const siPos = getPos({ positions, id: "storyImage-1" });
+    expect(siPos.y).toBeGreaterThan(stylePos.y);
+    expect(siPos.y).toBe(400);
+  });
+});
+
+describe("computeNodePosition", () => {
+  it("returns position for a specific node", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({ id: "location-1", type: "location" }),
+    ];
+    const pos = computeNodePosition({ nodes, nodeId: "location-1" });
+    expect(pos.y).toBeGreaterThan(0);
+  });
+
+  it("returns {0,0} for unknown node id", () => {
+    const nodes: AppNode[] = [makeNode({ id: "style", type: "style" })];
+    const pos = computeNodePosition({ nodes, nodeId: "nonexistent" });
+    expect(pos).toEqual({ x: 0, y: 0 });
+  });
+});

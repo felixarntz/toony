@@ -45,12 +45,32 @@ export interface CharacterNodeData {
   [key: string]: unknown;
 }
 
+export interface StoryImageNodeData {
+  characterIds: string[];
+  generatedImage: string | null;
+  isGenerating: boolean;
+  locationId: string | null;
+  sceneDescription: string;
+  [key: string]: unknown;
+}
+
 export type StyleNodeType = Node<StyleNodeData, "style">;
 export type SettingNodeType = Node<SettingNodeData, "setting">;
 export type LocationNodeType = Node<LocationNodeData, "location">;
 export type CharacterNodeType = Node<CharacterNodeData, "character">;
+export interface MovieNodeData {
+  generatedVideoUrl: string | null;
+  isGenerating: boolean;
+  phase: "idle" | "generating-clips" | "concatenating";
+  [key: string]: unknown;
+}
+
+export type StoryImageNodeType = Node<StoryImageNodeData, "storyImage">;
+export type MovieNodeType = Node<MovieNodeData, "movie">;
 export type AppNode =
   | StyleNodeType
   | SettingNodeType
   | LocationNodeType
-  | CharacterNodeType;
+  | CharacterNodeType
+  | StoryImageNodeType
+  | MovieNodeType;

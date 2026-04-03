@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { MAX_CHARACTER_NODES, MAX_LOCATION_NODES, useFlowStore } from "./store";
+import {
+  MAX_CHARACTER_NODES,
+  MAX_LOCATION_NODES,
+  MAX_MOVIE_NODES,
+  MAX_STORY_IMAGE_NODES,
+  useFlowStore,
+} from "./store";
 
 function getLocationNodeId(): string {
   const node = useFlowStore.getState().nodes.find((n) => n.type === "location");
@@ -268,5 +274,462 @@ describe("store - character data updates", () => {
 
     const updated = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
     expect(updated?.data).toHaveProperty("isGenerating", true);
+  });
+});
+
+function setupCompletedLocationAndCharacter() {
+  useFlowStore.getState().addLocationNode();
+  const locId = getLocationNodeId();
+  useFlowStore.getState().setLocationDescription({
+    nodeId: locId,
+    description: "A forest",
+  });
+  useFlowStore.getState().setLocationGeneratedImage({
+    nodeId: locId,
+    image: "loc-base64",
+  });
+
+  useFlowStore.getState().addCharacterNode();
+  const charId = getCharacterNodeId();
+  useFlowStore.getState().setCharacterDescription({
+    nodeId: charId,
+    description: "A warrior",
+  });
+  useFlowStore.getState().setCharacterImages({
+    nodeId: charId,
+    frontalImage: "frontal-base64",
+    sideImage: "side-base64",
+  });
+
+  return { locId, charId };
+}
+
+function getStoryImageNodeId(): string {
+  const node = useFlowStore
+    .getState()
+    .nodes.find((n) => n.type === "storyImage");
+  if (!node) {
+    throw new Error("No story image node found");
+  }
+  return node.id;
+}
+
+describe("store - canAddStoryImage", () => {
+  it("returns false when no completed location or character", () => {
+    expect(useFlowStore.getState().canAddStoryImage()).toBe(false);
+  });
+
+  it("returns false with completed location but no completed character", () => {
+    useFlowStore.getState().addLocationNode();
+    const locId = getLocationNodeId();
+    useFlowStore.getState().setLocationGeneratedImage({
+      nodeId: locId,
+      image: "base64",
+    });
+    expect(useFlowStore.getState().canAddStoryImage()).toBe(false);
+  });
+
+  it("returns false with completed character but no completed location", () => {
+    useFlowStore.getState().addCharacterNode();
+    const charId = getCharacterNodeId();
+    useFlowStore.getState().setCharacterImages({
+      nodeId: charId,
+      frontalImage: "f",
+      sideImage: "s",
+    });
+    expect(useFlowStore.getState().canAddStoryImage()).toBe(false);
+  });
+
+  it("returns true with both completed location and character", () => {
+    setupCompletedLocationAndCharacter();
+    expect(useFlowStore.getState().canAddStoryImage()).toBe(true);
+  });
+});
+
+describe("store - story image nodes", () => {
+  it("starts with no story image nodes", () => {
+    const state = useFlowStore.getState();
+    const storyNodes = state.nodes.filter((n) => n.type === "storyImage");
+    expect(storyNodes).toHaveLength(0);
+  });
+
+  it("cannot add story image without preconditions", () => {
+    useFlowStore.getState().addStoryImageNode();
+    const state = useFlowStore.getState();
+    const storyNodes = state.nodes.filter((n) => n.type === "storyImage");
+    expect(storyNodes).toHaveLength(0);
+  });
+
+  it("adds a story image node when preconditions are met", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const state = useFlowStore.getState();
+    const storyNodes = state.nodes.filter((n) => n.type === "storyImage");
+    expect(storyNodes).toHaveLength(1);
+    expect(storyNodes[0].type).toBe("storyImage");
+    expect(storyNodes[0].data).toEqual({
+      locationId: null,
+      characterIds: [],
+      sceneDescription: "",
+      generatedImage: null,
+      isGenerating: false,
+    });
+  });
+
+  it("enforces max story image constraint", () => {
+    setupCompletedLocationAndCharacter();
+    for (let i = 0; i < MAX_STORY_IMAGE_NODES + 1; i++) {
+      useFlowStore.getState().addStoryImageNode();
+    }
+    const state = useFlowStore.getState();
+    const storyNodes = state.nodes.filter((n) => n.type === "storyImage");
+    expect(storyNodes).toHaveLength(MAX_STORY_IMAGE_NODES);
+  });
+
+  it("removes a story image node", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const nodeId = getStoryImageNodeId();
+
+    useFlowStore.getState().removeStoryImageNode({ nodeId });
+    const state = useFlowStore.getState();
+    const storyNodes = state.nodes.filter((n) => n.type === "storyImage");
+    expect(storyNodes).toHaveLength(0);
+  });
+
+  it("getStoryImageCount returns correct count", () => {
+    setupCompletedLocationAndCharacter();
+    expect(useFlowStore.getState().getStoryImageCount()).toBe(0);
+    useFlowStore.getState().addStoryImageNode();
+    expect(useFlowStore.getState().getStoryImageCount()).toBe(1);
+  });
+});
+
+describe("store - story image data updates", () => {
+  it("updates story image location id", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const nodeId = getStoryImageNodeId();
+
+    useFlowStore.getState().setStoryImageLocationId({
+      nodeId,
+      locationId: "location-1",
+    });
+
+    const updated = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+    expect(updated?.data).toHaveProperty("locationId", "location-1");
+  });
+
+  it("updates story image character ids", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const nodeId = getStoryImageNodeId();
+
+    useFlowStore.getState().setStoryImageCharacterIds({
+      nodeId,
+      characterIds: ["character-1", "character-2"],
+    });
+
+    const updated = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+    expect(updated?.data).toHaveProperty("characterIds", [
+      "character-1",
+      "character-2",
+    ]);
+  });
+
+  it("updates story image scene description", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const nodeId = getStoryImageNodeId();
+
+    useFlowStore.getState().setStoryImageSceneDescription({
+      nodeId,
+      sceneDescription: "A battle scene",
+    });
+
+    const updated = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+    expect(updated?.data).toHaveProperty("sceneDescription", "A battle scene");
+  });
+
+  it("updates story image generated image", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const nodeId = getStoryImageNodeId();
+
+    useFlowStore.getState().setStoryImageGeneratedImage({
+      nodeId,
+      image: "story-base64",
+    });
+
+    const updated = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+    expect(updated?.data).toHaveProperty("generatedImage", "story-base64");
+  });
+});
+
+describe("computeEdges - story image", () => {
+  it("creates edges from selected location to story image", () => {
+    const { locId } = setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const siId = getStoryImageNodeId();
+
+    useFlowStore.getState().setStoryImageLocationId({
+      nodeId: siId,
+      locationId: locId,
+    });
+
+    const { edges } = useFlowStore.getState();
+    const locToSi = edges.find((e) => e.source === locId && e.target === siId);
+    expect(locToSi).toBeDefined();
+  });
+
+  it("creates edges from selected characters to story image", () => {
+    const { charId } = setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const siId = getStoryImageNodeId();
+
+    useFlowStore.getState().setStoryImageCharacterIds({
+      nodeId: siId,
+      characterIds: [charId],
+    });
+
+    const { edges } = useFlowStore.getState();
+    const charToSi = edges.find(
+      (e) => e.source === charId && e.target === siId
+    );
+    expect(charToSi).toBeDefined();
+  });
+
+  it("creates sequential edge chain between story image nodes", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    useFlowStore.getState().addStoryImageNode();
+
+    const storyNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "storyImage");
+    expect(storyNodes).toHaveLength(2);
+
+    const { edges } = useFlowStore.getState();
+    const sequentialEdge = edges.find(
+      (e) => e.source === storyNodes[0].id && e.target === storyNodes[1].id
+    );
+    expect(sequentialEdge).toBeDefined();
+  });
+
+  it("edges update when story image is removed", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const siId = getStoryImageNodeId();
+
+    useFlowStore.getState().removeStoryImageNode({ nodeId: siId });
+
+    const { edges } = useFlowStore.getState();
+    const storyEdges = edges.filter(
+      (e) => e.source === siId || e.target === siId
+    );
+    expect(storyEdges).toHaveLength(0);
+  });
+});
+
+function setupCompletedStoryImage() {
+  const { locId, charId } = setupCompletedLocationAndCharacter();
+  useFlowStore.getState().addStoryImageNode();
+  const siId = getStoryImageNodeId();
+  useFlowStore.getState().setStoryImageLocationId({
+    nodeId: siId,
+    locationId: locId,
+  });
+  useFlowStore.getState().setStoryImageCharacterIds({
+    nodeId: siId,
+    characterIds: [charId],
+  });
+  useFlowStore.getState().setStoryImageSceneDescription({
+    nodeId: siId,
+    sceneDescription: "A battle scene",
+  });
+  useFlowStore.getState().setStoryImageGeneratedImage({
+    nodeId: siId,
+    image: "story-base64",
+  });
+  return { locId, charId, siId };
+}
+
+function getMovieNodeId(): string {
+  const node = useFlowStore.getState().nodes.find((n) => n.type === "movie");
+  if (!node) {
+    throw new Error("No movie node found");
+  }
+  return node.id;
+}
+
+describe("store - canAddMovie", () => {
+  it("returns false when no completed story image exists", () => {
+    expect(useFlowStore.getState().canAddMovie()).toBe(false);
+  });
+
+  it("returns false when story images exist but none are completed", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    expect(useFlowStore.getState().canAddMovie()).toBe(false);
+  });
+
+  it("returns true when at least one completed story image exists", () => {
+    setupCompletedStoryImage();
+    expect(useFlowStore.getState().canAddMovie()).toBe(true);
+  });
+
+  it("returns false when movie already exists", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addMovieNode();
+    expect(useFlowStore.getState().canAddMovie()).toBe(false);
+  });
+});
+
+describe("store - movie nodes", () => {
+  it("starts with no movie nodes", () => {
+    const movieNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "movie");
+    expect(movieNodes).toHaveLength(0);
+  });
+
+  it("cannot add movie without preconditions", () => {
+    useFlowStore.getState().addMovieNode();
+    const movieNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "movie");
+    expect(movieNodes).toHaveLength(0);
+  });
+
+  it("adds a movie node when preconditions are met", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addMovieNode();
+    const movieNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "movie");
+    expect(movieNodes).toHaveLength(1);
+    expect(movieNodes[0].data).toEqual({
+      generatedVideoUrl: null,
+      isGenerating: false,
+      phase: "idle",
+    });
+  });
+
+  it("enforces max movie constraint", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addMovieNode();
+    useFlowStore.getState().addMovieNode();
+    const movieNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "movie");
+    expect(movieNodes).toHaveLength(MAX_MOVIE_NODES);
+  });
+
+  it("removes a movie node", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addMovieNode();
+    const nodeId = getMovieNodeId();
+
+    useFlowStore.getState().removeMovieNode({ nodeId });
+    const movieNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "movie");
+    expect(movieNodes).toHaveLength(0);
+  });
+
+  it("getMovieCount returns correct count", () => {
+    setupCompletedStoryImage();
+    expect(useFlowStore.getState().getMovieCount()).toBe(0);
+    useFlowStore.getState().addMovieNode();
+    expect(useFlowStore.getState().getMovieCount()).toBe(1);
+  });
+});
+
+describe("computeEdges - movie", () => {
+  it("creates edges from all story images to movie node", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addMovieNode();
+
+    const storyNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "storyImage");
+    const { edges } = useFlowStore.getState();
+
+    for (const siNode of storyNodes) {
+      const edge = edges.find(
+        (e) => e.source === siNode.id && e.target === "movie"
+      );
+      expect(edge).toBeDefined();
+    }
+  });
+
+  it("edges update when movie is removed", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addMovieNode();
+    useFlowStore.getState().removeMovieNode({ nodeId: "movie" });
+
+    const { edges } = useFlowStore.getState();
+    const movieEdges = edges.filter(
+      (e) => e.source === "movie" || e.target === "movie"
+    );
+    expect(movieEdges).toHaveLength(0);
+  });
+});
+
+describe("store - model selection", () => {
+  it("has correct default image model", () => {
+    const { globalSettings } = useFlowStore.getState();
+    expect(globalSettings.imageModel).toBe("google/gemini-3-pro-image");
+  });
+
+  it("has correct default video model", () => {
+    const { globalSettings } = useFlowStore.getState();
+    expect(globalSettings.videoModel).toBe("google/veo-3.1-generate-001");
+  });
+
+  it("updates image model", () => {
+    useFlowStore.getState().setImageModel({
+      model: "google/gemini-3.1.flash-image-preview",
+    });
+    const { globalSettings } = useFlowStore.getState();
+    expect(globalSettings.imageModel).toBe(
+      "google/gemini-3.1.flash-image-preview"
+    );
+  });
+
+  it("updates video model", () => {
+    useFlowStore.getState().setVideoModel({
+      model: "klingai/kling-v3.0-i2v",
+    });
+    const { globalSettings } = useFlowStore.getState();
+    expect(globalSettings.videoModel).toBe("klingai/kling-v3.0-i2v");
+  });
+
+  it("preserves image model when video model changes", () => {
+    useFlowStore.getState().setImageModel({
+      model: "google/gemini-3.1.flash-image-preview",
+    });
+    useFlowStore.getState().setVideoModel({
+      model: "xai/grok-imagine-video",
+    });
+    const { globalSettings } = useFlowStore.getState();
+    expect(globalSettings.imageModel).toBe(
+      "google/gemini-3.1.flash-image-preview"
+    );
+    expect(globalSettings.videoModel).toBe("xai/grok-imagine-video");
+  });
+
+  it("preserves video model when image model changes", () => {
+    useFlowStore.getState().setVideoModel({
+      model: "google/veo-3.0-generate-001",
+    });
+    useFlowStore.getState().setImageModel({
+      model: "google/gemini-3.1.flash-image-preview",
+    });
+    const { globalSettings } = useFlowStore.getState();
+    expect(globalSettings.videoModel).toBe("google/veo-3.0-generate-001");
+    expect(globalSettings.imageModel).toBe(
+      "google/gemini-3.1.flash-image-preview"
+    );
   });
 });
