@@ -23,9 +23,13 @@ In general, default to using Bun instead of Node.js.
 
 # Verification
 
-You have access to `agent-browser`, and you can use the skill of the same name to learn how to use it. When the dev server is running, you can access the app you're building on `http://localhost:3000`.
+You have access to `agent-browser`. Use the skill of the same name to learn how to use it. When the dev server is running, you can access the app you're building on `http://localhost:3000`.
 
 Use `--headed` mode so the user can follow along as you are verifying and debugging changes.
+
+Always use `agent-browser` right from the start when you make visual changes. Verify every UI change one by one to make sure they appear correctly; don't implement a bunch of CSS changes and only verify at the end.
+
+Verification at the end is only the right approach for functional changes, or changes that primarily affect the frontend-to-backend communication.
 
 # shadcn Guidelines
 
