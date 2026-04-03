@@ -33,8 +33,8 @@ export function ModelSettingsPanel() {
 
   return (
     <Panel position="top-right">
-      <div className="flex flex-col gap-2 rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-lg">
-        <div className="font-medium text-xs text-zinc-400">Models</div>
+      <div className="flex flex-col gap-2 rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)] p-2 backdrop-blur-sm">
+        <div className="font-medium text-foreground/70 text-xs">Models</div>
         <div className="nodrag">
           <label className="sr-only" htmlFor="image-model-select">
             Image Model
@@ -44,10 +44,10 @@ export function ModelSettingsPanel() {
             value={globalSettings.imageModel}
           >
             <SelectTrigger
-              className="h-7 w-full border-zinc-700 bg-zinc-800 text-xs text-zinc-200"
+              className="h-7 w-full border-[var(--node-input-border)] bg-[var(--node-input-bg)] text-foreground text-xs"
               id="image-model-select"
             >
-              <ImageIcon className="size-3.5 shrink-0 text-zinc-400" />
+              <ImageIcon className="size-3.5 shrink-0 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -68,10 +68,10 @@ export function ModelSettingsPanel() {
             value={globalSettings.videoModel}
           >
             <SelectTrigger
-              className="h-7 w-full border-zinc-700 bg-zinc-800 text-xs text-zinc-200"
+              className="h-7 w-full border-[var(--node-input-border)] bg-[var(--node-input-bg)] text-foreground text-xs"
               id="video-model-select"
             >
-              <Video className="size-3.5 shrink-0 text-zinc-400" />
+              <Video className="size-3.5 shrink-0 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

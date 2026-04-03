@@ -60,7 +60,7 @@ export function AddNodePanel() {
 
   return (
     <Panel position="bottom-center">
-      <div className="flex gap-1 rounded-lg border border-zinc-700 bg-zinc-900 p-1.5 shadow-lg">
+      <div className="flex gap-1 rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)] p-1.5 backdrop-blur-sm">
         <Button
           className="nodrag"
           disabled={locationLimitReached}

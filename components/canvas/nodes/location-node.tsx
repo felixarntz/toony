@@ -73,72 +73,79 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
   ]);
 
   return (
-    <div className="relative w-80 rounded-lg border border-amber-500/30 bg-zinc-900 p-4 shadow-lg">
-      <Handle className="!bg-amber-500" position={Position.Top} type="target" />
-      <RemoveNodeButton onClick={() => removeLocationNode({ nodeId: id })} />
-      <EditableNodeLabel
-        className="text-amber-400"
-        name={data.name}
-        onNameChange={(name) => setLocationName({ nodeId: id, name })}
-        placeholder="Location"
+    <div className="relative w-80 overflow-hidden rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)]">
+      <Handle
+        position={Position.Top}
+        style={{ background: "var(--node-location)" }}
+        type="target"
       />
-      <label
-        className="mb-1 block text-xs text-zinc-400"
-        htmlFor={`location-desc-${id}`}
-      >
-        Description
-      </label>
-      <textarea
-        className="nodrag mb-3 w-full resize-y rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none"
-        id={`location-desc-${id}`}
-        onChange={(e) =>
-          setLocationDescription({ nodeId: id, description: e.target.value })
-        }
-        placeholder="Describe this location..."
-        rows={3}
-        value={data.description}
-      />
+      <div className="h-0.5" style={{ background: "var(--node-location)" }} />
+      <div className="p-4">
+        <RemoveNodeButton onClick={() => removeLocationNode({ nodeId: id })} />
+        <EditableNodeLabel
+          className="text-[var(--node-location)]"
+          name={data.name}
+          onNameChange={(name) => setLocationName({ nodeId: id, name })}
+          placeholder="Location"
+        />
+        <label
+          className="mb-1 block text-foreground/70 text-xs"
+          htmlFor={`location-desc-${id}`}
+        >
+          Description
+        </label>
+        <textarea
+          className="nodrag mb-3 w-full resize-y rounded-md border border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 py-1.5 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none"
+          id={`location-desc-${id}`}
+          onChange={(e) =>
+            setLocationDescription({ nodeId: id, description: e.target.value })
+          }
+          placeholder="Describe this location..."
+          rows={3}
+          value={data.description}
+        />
 
-      {data.generatedImage && !data.isGenerating && (
-        <div className="nodrag mb-3 overflow-hidden rounded">
-          <ImageOverlay
-            alt="Generated location"
-            src={`data:image/png;base64,${data.generatedImage}`}
-          />
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        {data.generatedImage && !data.isGenerating ? (
-          <Button
-            className="nodrag flex-1"
-            disabled={!canGenerate}
-            onClick={handleGenerate}
-            size="sm"
-            variant="outline"
-          >
-            <RefreshCw className="size-3" />
-            Regenerate
-          </Button>
-        ) : (
-          <Button
-            className="nodrag flex-1"
-            disabled={!canGenerate}
-            onClick={handleGenerate}
-            size="sm"
-          >
-            {data.isGenerating ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <Sparkles className="size-3" />
-            )}
-            {data.isGenerating ? "Generating..." : "Generate"}
-          </Button>
+        {data.generatedImage && !data.isGenerating && (
+          <div className="nodrag mb-3 overflow-hidden rounded">
+            <ImageOverlay
+              alt="Generated location"
+              src={`data:image/png;base64,${data.generatedImage}`}
+            />
+          </div>
         )}
+
+        <div className="flex gap-2">
+          {data.generatedImage && !data.isGenerating ? (
+            <Button
+              className="nodrag flex-1"
+              disabled={!canGenerate}
+              onClick={handleGenerate}
+              size="sm"
+              variant="outline"
+            >
+              <RefreshCw className="size-3" />
+              Regenerate
+            </Button>
+          ) : (
+            <Button
+              className="nodrag flex-1"
+              disabled={!canGenerate}
+              onClick={handleGenerate}
+              size="sm"
+            >
+              {data.isGenerating ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <Sparkles className="size-3" />
+              )}
+              {data.isGenerating ? "Generating..." : "Generate"}
+            </Button>
+          )}
+        </div>
       </div>
       <Handle
-        className="!bg-amber-500"
         position={Position.Bottom}
+        style={{ background: "var(--node-location)" }}
         type="source"
       />
     </div>

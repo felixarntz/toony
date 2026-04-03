@@ -46,7 +46,7 @@ export function EditableNodeLabel({
   if (editing) {
     return (
       <input
-        className={`nodrag mb-3 w-full rounded border border-zinc-600 bg-zinc-800 px-1 py-0.5 font-semibold text-sm uppercase tracking-wide focus:outline-none ${className}`}
+        className={`nodrag mb-3 w-full rounded-md border border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-1.5 py-0.5 font-medium text-xs uppercase tracking-widest focus:outline-none ${className}`}
         onBlur={commit}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -59,7 +59,7 @@ export function EditableNodeLabel({
 
   return (
     <button
-      className={`nodrag mb-3 flex items-center gap-1.5 font-semibold text-sm uppercase tracking-wide ${className}`}
+      className={`nodrag mb-3 flex items-center gap-1.5 font-medium text-xs uppercase tracking-widest ${className}`}
       onClick={() => setEditing(true)}
       title="Click to rename"
       type="button"

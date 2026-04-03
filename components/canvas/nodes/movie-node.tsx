@@ -166,56 +166,66 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
   const phaseLabel = getPhaseLabel();
 
   return (
-    <div className="relative w-96 rounded-lg border border-pink-500/30 bg-zinc-900 p-4 shadow-lg">
-      <Handle className="!bg-pink-500" position={Position.Top} type="target" />
-      <RemoveNodeButton onClick={() => removeMovieNode({ nodeId: id })} />
-      <div className="mb-3 font-semibold text-pink-400 text-sm uppercase tracking-wide">
-        Movie
-      </div>
+    <div className="relative w-96 overflow-hidden rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)]">
+      <Handle
+        position={Position.Top}
+        style={{ background: "var(--node-movie)" }}
+        type="target"
+      />
+      <div className="h-0.5" style={{ background: "var(--node-movie)" }} />
+      <div className="p-4">
+        <RemoveNodeButton onClick={() => removeMovieNode({ nodeId: id })} />
+        <div
+          className="mb-3 font-medium text-xs uppercase tracking-widest"
+          style={{ color: "var(--node-movie)" }}
+        >
+          Movie
+        </div>
 
-      {data.isGenerating && (
-        <div className="mb-3 overflow-hidden rounded">
-          <Skeleton className="h-48 w-full" />
-          <div className="flex items-center justify-center gap-2 py-2 text-xs text-zinc-400">
-            <Loader2 className="size-3 animate-spin" />
-            {phaseLabel}
+        {data.isGenerating && (
+          <div className="mb-3 overflow-hidden rounded">
+            <Skeleton className="h-48 w-full" />
+            <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground text-xs">
+              <Loader2 className="size-3 animate-spin" />
+              {phaseLabel}
+            </div>
           </div>
-        </div>
-      )}
-
-      {ffmpegLoading && !data.isGenerating && (
-        <div className="mb-3 flex items-center justify-center gap-2 py-2 text-xs text-zinc-400">
-          <Loader2 className="size-3 animate-spin" />
-          Loading FFmpeg...
-        </div>
-      )}
-
-      {!data.isGenerating && data.generatedVideoUrl && (
-        <div className="mb-3 overflow-hidden rounded">
-          <video className="w-full" controls src={data.generatedVideoUrl}>
-            <track kind="captions" />
-          </video>
-        </div>
-      )}
-
-      <div className="mb-2 text-xs text-zinc-500">
-        {completedStoryImages.length} completed story image
-        {completedStoryImages.length === 1 ? "" : "s"} available
-      </div>
-
-      <Button
-        className="nodrag w-full"
-        disabled={completedStoryImages.length === 0 || data.isGenerating}
-        onClick={handleGenerate}
-        size="sm"
-      >
-        {data.isGenerating ? (
-          <Loader2 className="size-3 animate-spin" />
-        ) : (
-          <Sparkles className="size-3" />
         )}
-        {data.isGenerating ? "Generating..." : "Generate Movie"}
-      </Button>
+
+        {ffmpegLoading && !data.isGenerating && (
+          <div className="mb-3 flex items-center justify-center gap-2 py-2 text-muted-foreground text-xs">
+            <Loader2 className="size-3 animate-spin" />
+            Loading FFmpeg...
+          </div>
+        )}
+
+        {!data.isGenerating && data.generatedVideoUrl && (
+          <div className="mb-3 overflow-hidden rounded">
+            <video className="w-full" controls src={data.generatedVideoUrl}>
+              <track kind="captions" />
+            </video>
+          </div>
+        )}
+
+        <div className="mb-2 text-muted-foreground text-xs">
+          {completedStoryImages.length} completed story image
+          {completedStoryImages.length === 1 ? "" : "s"} available
+        </div>
+
+        <Button
+          className="nodrag w-full"
+          disabled={completedStoryImages.length === 0 || data.isGenerating}
+          onClick={handleGenerate}
+          size="sm"
+        >
+          {data.isGenerating ? (
+            <Loader2 className="size-3 animate-spin" />
+          ) : (
+            <Sparkles className="size-3" />
+          )}
+          {data.isGenerating ? "Generating..." : "Generate Movie"}
+        </Button>
+      </div>
     </div>
   );
 }

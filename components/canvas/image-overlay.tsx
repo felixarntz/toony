@@ -49,7 +49,7 @@ export function ImageOverlay({ src, alt }: ImageOverlayProps) {
           onClick={close}
           type="button"
         >
-          <span className="absolute top-4 right-4 flex size-8 items-center justify-center rounded-full bg-zinc-800 text-zinc-300 transition-colors hover:bg-zinc-700">
+          <span className="absolute top-4 right-4 flex size-8 items-center justify-center rounded-full bg-[var(--node-surface)] text-foreground/70 transition-colors hover:bg-[var(--node-input-bg)]">
             <X className="size-4" />
           </span>
           <Image

@@ -70,7 +70,11 @@ export function ProjectPanel() {
 
   return (
     <Panel position="top-left">
-      <div className="flex gap-2 rounded-lg border border-zinc-700 bg-zinc-900 p-2 shadow-lg">
+      <div className="flex items-center gap-2 rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)] p-2 backdrop-blur-sm">
+        <span className="font-medium text-foreground text-sm tracking-tight">
+          Toony
+        </span>
+        <span className="h-4 w-px bg-[var(--node-input-border)]" />
         <Button
           className="nodrag"
           onClick={handleExportProject}

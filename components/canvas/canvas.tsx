@@ -44,7 +44,12 @@ export function Canvas() {
         onNodesChange={onNodesChange}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#333" gap={20} variant={BackgroundVariant.Dots} />
+        <Background
+          color="oklch(0.16 0 0)"
+          gap={24}
+          size={1}
+          variant={BackgroundVariant.Dots}
+        />
         <Controls />
         <AddNodePanel />
         <ModelSettingsPanel />

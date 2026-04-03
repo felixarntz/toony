@@ -12,55 +12,61 @@ export function StyleNode({ data }: NodeProps<StyleNodeType>) {
   );
 
   return (
-    <div className="w-72 rounded-lg border border-violet-500/30 bg-zinc-900 p-4 shadow-lg">
-      <div className="mb-3 font-semibold text-sm text-violet-400 uppercase tracking-wide">
-        Style
+    <div className="w-72 overflow-hidden rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)]">
+      <div className="h-0.5" style={{ background: "var(--node-style)" }} />
+      <div className="p-4">
+        <div
+          className="mb-3 font-medium text-xs uppercase tracking-widest"
+          style={{ color: "var(--node-style)" }}
+        >
+          Style
+        </div>
+        <label
+          className="mb-1 block text-foreground/70 text-xs"
+          htmlFor="style-preset"
+        >
+          Preset
+        </label>
+        <select
+          className="nodrag mb-3 w-full rounded-md border border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 py-1.5 text-foreground text-sm focus:outline-none"
+          id="style-preset"
+          onChange={(e) =>
+            setStylePreset({
+              preset: e.target.value as StyleNodeType["data"]["preset"],
+            })
+          }
+          value={data.preset}
+        >
+          {STYLE_PRESETS.map((preset) => (
+            <option key={preset} value={preset}>
+              {STYLE_PRESET_LABELS[preset]}
+            </option>
+          ))}
+        </select>
+        {data.preset === "custom" && (
+          <>
+            <label
+              className="mb-1 block text-foreground/70 text-xs"
+              htmlFor="style-custom"
+            >
+              Custom style description
+            </label>
+            <textarea
+              className="nodrag w-full resize-y rounded-md border border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 py-1.5 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none"
+              id="style-custom"
+              onChange={(e) =>
+                setCustomStyleDescription({ description: e.target.value })
+              }
+              placeholder="Describe your visual style..."
+              rows={3}
+              value={data.customDescription}
+            />
+          </>
+        )}
       </div>
-      <label
-        className="mb-1 block text-xs text-zinc-400"
-        htmlFor="style-preset"
-      >
-        Preset
-      </label>
-      <select
-        className="nodrag mb-3 w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-200 focus:border-violet-500 focus:outline-none"
-        id="style-preset"
-        onChange={(e) =>
-          setStylePreset({
-            preset: e.target.value as StyleNodeType["data"]["preset"],
-          })
-        }
-        value={data.preset}
-      >
-        {STYLE_PRESETS.map((preset) => (
-          <option key={preset} value={preset}>
-            {STYLE_PRESET_LABELS[preset]}
-          </option>
-        ))}
-      </select>
-      {data.preset === "custom" && (
-        <>
-          <label
-            className="mb-1 block text-xs text-zinc-400"
-            htmlFor="style-custom"
-          >
-            Custom style description
-          </label>
-          <textarea
-            className="nodrag w-full resize-y rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-violet-500 focus:outline-none"
-            id="style-custom"
-            onChange={(e) =>
-              setCustomStyleDescription({ description: e.target.value })
-            }
-            placeholder="Describe your visual style..."
-            rows={3}
-            value={data.customDescription}
-          />
-        </>
-      )}
       <Handle
-        className="!bg-violet-500"
         position={Position.Bottom}
+        style={{ background: "var(--node-style)" }}
         type="source"
       />
     </div>

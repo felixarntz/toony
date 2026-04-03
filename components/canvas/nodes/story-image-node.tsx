@@ -156,132 +156,145 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
   );
 
   return (
-    <div className="relative w-96 rounded-lg border border-purple-500/30 bg-zinc-900 p-4 shadow-lg">
+    <div className="relative w-96 overflow-hidden rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)]">
       <Handle
-        className="!bg-purple-500"
         position={Position.Top}
+        style={{ background: "var(--node-story-image)" }}
         type="target"
       />
-      <RemoveNodeButton onClick={() => removeStoryImageNode({ nodeId: id })} />
-      <div className="mb-3 font-semibold text-purple-400 text-sm uppercase tracking-wide">
-        Story Image {myIndex >= 0 ? `#${myIndex + 1}` : ""}
-      </div>
-
-      <label
-        className="mb-1 block text-xs text-zinc-400"
-        htmlFor={`story-location-${id}`}
-      >
-        Location
-      </label>
-      <div className="nodrag mb-3">
-        <Select
-          onValueChange={(value) =>
-            setStoryImageLocationId({ nodeId: id, locationId: value })
-          }
-          value={data.locationId ?? ""}
+      <div
+        className="h-0.5"
+        style={{ background: "var(--node-story-image)" }}
+      />
+      <div className="p-4">
+        <RemoveNodeButton
+          onClick={() => removeStoryImageNode({ nodeId: id })}
+        />
+        <div
+          className="mb-3 font-medium text-xs uppercase tracking-widest"
+          style={{ color: "var(--node-story-image)" }}
         >
-          <SelectTrigger className="w-full border-zinc-700 bg-zinc-800 text-zinc-200">
-            <SelectValue placeholder="Select a location..." />
-          </SelectTrigger>
-          <SelectContent>
-            {completedLocations.map((loc) => (
-              <SelectItem key={loc.id} value={loc.id}>
-                {(loc.data as LocationNodeData).name || loc.id}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          Story Image {myIndex >= 0 ? `#${myIndex + 1}` : ""}
+        </div>
 
-      <fieldset className="mb-3">
-        <legend className="mb-1 block text-xs text-zinc-400">Characters</legend>
-        <div className="nodrag space-y-1.5">
-          {completedCharacters.map((char) => {
-            const charData = char.data as CharacterNodeData;
-            const isSelected = data.characterIds.includes(char.id);
-            return (
-              <label
-                className="flex cursor-pointer items-center gap-2 rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-200 transition-colors hover:border-zinc-600"
-                htmlFor={`story-char-${id}-${char.id}`}
-                key={char.id}
-              >
-                <Checkbox
-                  checked={isSelected}
-                  id={`story-char-${id}-${char.id}`}
-                  onCheckedChange={() => handleCharacterToggle(char.id)}
-                />
-                <span className="truncate">{charData.name || char.id}</span>
-              </label>
-            );
-          })}
-          {completedCharacters.length === 0 && (
-            <div className="text-xs text-zinc-500">
-              No completed characters available
-            </div>
+        <label
+          className="mb-1 block text-foreground/70 text-xs"
+          htmlFor={`story-location-${id}`}
+        >
+          Location
+        </label>
+        <div className="nodrag mb-3">
+          <Select
+            onValueChange={(value) =>
+              setStoryImageLocationId({ nodeId: id, locationId: value })
+            }
+            value={data.locationId ?? ""}
+          >
+            <SelectTrigger className="w-full border-[var(--node-input-border)] bg-[var(--node-input-bg)] text-foreground">
+              <SelectValue placeholder="Select a location..." />
+            </SelectTrigger>
+            <SelectContent>
+              {completedLocations.map((loc) => (
+                <SelectItem key={loc.id} value={loc.id}>
+                  {(loc.data as LocationNodeData).name || loc.id}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <fieldset className="mb-3">
+          <legend className="mb-1 block text-foreground/70 text-xs">
+            Characters
+          </legend>
+          <div className="nodrag space-y-1.5">
+            {completedCharacters.map((char) => {
+              const charData = char.data as CharacterNodeData;
+              const isSelected = data.characterIds.includes(char.id);
+              return (
+                <label
+                  className="flex cursor-pointer items-center gap-2 rounded-md border border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 py-1.5 text-foreground text-sm transition-colors hover:border-[var(--node-input-border)]"
+                  htmlFor={`story-char-${id}-${char.id}`}
+                  key={char.id}
+                >
+                  <Checkbox
+                    checked={isSelected}
+                    id={`story-char-${id}-${char.id}`}
+                    onCheckedChange={() => handleCharacterToggle(char.id)}
+                  />
+                  <span className="truncate">{charData.name || char.id}</span>
+                </label>
+              );
+            })}
+            {completedCharacters.length === 0 && (
+              <div className="text-muted-foreground text-xs">
+                No completed characters available
+              </div>
+            )}
+          </div>
+        </fieldset>
+
+        <label
+          className="mb-1 block text-foreground/70 text-xs"
+          htmlFor={`story-desc-${id}`}
+        >
+          Scene Description
+        </label>
+        <textarea
+          className="nodrag mb-3 w-full resize-y rounded-md border border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 py-1.5 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none"
+          id={`story-desc-${id}`}
+          onChange={(e) =>
+            setStoryImageSceneDescription({
+              nodeId: id,
+              sceneDescription: e.target.value,
+            })
+          }
+          placeholder="Describe what happens in this scene..."
+          rows={3}
+          value={data.sceneDescription}
+        />
+
+        {data.generatedImage && !data.isGenerating && (
+          <div className="nodrag mb-3 overflow-hidden rounded">
+            <ImageOverlay
+              alt="Generated story frame"
+              src={`data:image/png;base64,${data.generatedImage}`}
+            />
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          {data.generatedImage && !data.isGenerating ? (
+            <Button
+              className="nodrag flex-1"
+              disabled={!canGenerate}
+              onClick={handleGenerate}
+              size="sm"
+              variant="outline"
+            >
+              <RefreshCw className="size-3" />
+              Regenerate
+            </Button>
+          ) : (
+            <Button
+              className="nodrag flex-1"
+              disabled={!canGenerate}
+              onClick={handleGenerate}
+              size="sm"
+            >
+              {data.isGenerating ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <Sparkles className="size-3" />
+              )}
+              {data.isGenerating ? "Generating..." : "Generate"}
+            </Button>
           )}
         </div>
-      </fieldset>
-
-      <label
-        className="mb-1 block text-xs text-zinc-400"
-        htmlFor={`story-desc-${id}`}
-      >
-        Scene Description
-      </label>
-      <textarea
-        className="nodrag mb-3 w-full resize-y rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-purple-500 focus:outline-none"
-        id={`story-desc-${id}`}
-        onChange={(e) =>
-          setStoryImageSceneDescription({
-            nodeId: id,
-            sceneDescription: e.target.value,
-          })
-        }
-        placeholder="Describe what happens in this scene..."
-        rows={3}
-        value={data.sceneDescription}
-      />
-
-      {data.generatedImage && !data.isGenerating && (
-        <div className="nodrag mb-3 overflow-hidden rounded">
-          <ImageOverlay
-            alt="Generated story frame"
-            src={`data:image/png;base64,${data.generatedImage}`}
-          />
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        {data.generatedImage && !data.isGenerating ? (
-          <Button
-            className="nodrag flex-1"
-            disabled={!canGenerate}
-            onClick={handleGenerate}
-            size="sm"
-            variant="outline"
-          >
-            <RefreshCw className="size-3" />
-            Regenerate
-          </Button>
-        ) : (
-          <Button
-            className="nodrag flex-1"
-            disabled={!canGenerate}
-            onClick={handleGenerate}
-            size="sm"
-          >
-            {data.isGenerating ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <Sparkles className="size-3" />
-            )}
-            {data.isGenerating ? "Generating..." : "Generate"}
-          </Button>
-        )}
       </div>
       <Handle
-        className="!bg-purple-500"
         position={Position.Bottom}
+        style={{ background: "var(--node-story-image)" }}
         type="source"
       />
     </div>

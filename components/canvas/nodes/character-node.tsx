@@ -98,88 +98,97 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
   ]);
 
   return (
-    <div className="relative w-80 rounded-lg border border-teal-500/30 bg-zinc-900 p-4 shadow-lg">
-      <Handle className="!bg-teal-500" position={Position.Top} type="target" />
-      <RemoveNodeButton onClick={() => removeCharacterNode({ nodeId: id })} />
-      <EditableNodeLabel
-        className="text-teal-400"
-        name={data.name}
-        onNameChange={(name) => setCharacterName({ nodeId: id, name })}
-        placeholder="Character"
+    <div className="relative w-80 overflow-hidden rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)]">
+      <Handle
+        position={Position.Top}
+        style={{ background: "var(--node-character)" }}
+        type="target"
       />
-      <label
-        className="mb-1 block text-xs text-zinc-400"
-        htmlFor={`character-desc-${id}`}
-      >
-        Description
-      </label>
-      <textarea
-        className="nodrag mb-3 w-full resize-y rounded border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-teal-500 focus:outline-none"
-        id={`character-desc-${id}`}
-        onChange={(e) =>
-          setCharacterDescription({ nodeId: id, description: e.target.value })
-        }
-        placeholder="Describe this character..."
-        rows={3}
-        value={data.description}
-      />
+      <div className="h-0.5" style={{ background: "var(--node-character)" }} />
+      <div className="p-4">
+        <RemoveNodeButton onClick={() => removeCharacterNode({ nodeId: id })} />
+        <EditableNodeLabel
+          className="text-[var(--node-character)]"
+          name={data.name}
+          onNameChange={(name) => setCharacterName({ nodeId: id, name })}
+          placeholder="Character"
+        />
+        <label
+          className="mb-1 block text-foreground/70 text-xs"
+          htmlFor={`character-desc-${id}`}
+        >
+          Description
+        </label>
+        <textarea
+          className="nodrag mb-3 w-full resize-y rounded-md border border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 py-1.5 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none"
+          id={`character-desc-${id}`}
+          onChange={(e) =>
+            setCharacterDescription({ nodeId: id, description: e.target.value })
+          }
+          placeholder="Describe this character..."
+          rows={3}
+          value={data.description}
+        />
 
-      {hasImages && !data.isGenerating && (
-        <div className="nodrag mb-3 grid grid-cols-2 gap-2 overflow-hidden rounded">
-          <div>
-            {data.frontalImage && (
-              <ImageOverlay
-                alt="Character frontal portrait"
-                src={`data:image/png;base64,${data.frontalImage}`}
-              />
-            )}
-            <div className="mt-1 text-center text-xs text-zinc-500">
-              Frontal
+        {hasImages && !data.isGenerating && (
+          <div className="nodrag mb-3 grid grid-cols-2 gap-2 overflow-hidden rounded">
+            <div>
+              {data.frontalImage && (
+                <ImageOverlay
+                  alt="Character frontal portrait"
+                  src={`data:image/png;base64,${data.frontalImage}`}
+                />
+              )}
+              <div className="mt-1 text-center text-muted-foreground text-xs">
+                Frontal
+              </div>
+            </div>
+            <div>
+              {data.sideImage && (
+                <ImageOverlay
+                  alt="Character side-view portrait"
+                  src={`data:image/png;base64,${data.sideImage}`}
+                />
+              )}
+              <div className="mt-1 text-center text-muted-foreground text-xs">
+                Side
+              </div>
             </div>
           </div>
-          <div>
-            {data.sideImage && (
-              <ImageOverlay
-                alt="Character side-view portrait"
-                src={`data:image/png;base64,${data.sideImage}`}
-              />
-            )}
-            <div className="mt-1 text-center text-xs text-zinc-500">Side</div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        {hasImages && !data.isGenerating ? (
-          <Button
-            className="nodrag flex-1"
-            disabled={!canGenerate}
-            onClick={handleGenerate}
-            size="sm"
-            variant="outline"
-          >
-            <RefreshCw className="size-3" />
-            Regenerate
-          </Button>
-        ) : (
-          <Button
-            className="nodrag flex-1"
-            disabled={!canGenerate}
-            onClick={handleGenerate}
-            size="sm"
-          >
-            {data.isGenerating ? (
-              <Loader2 className="size-3 animate-spin" />
-            ) : (
-              <Sparkles className="size-3" />
-            )}
-            {data.isGenerating ? "Generating..." : "Generate"}
-          </Button>
         )}
+
+        <div className="flex gap-2">
+          {hasImages && !data.isGenerating ? (
+            <Button
+              className="nodrag flex-1"
+              disabled={!canGenerate}
+              onClick={handleGenerate}
+              size="sm"
+              variant="outline"
+            >
+              <RefreshCw className="size-3" />
+              Regenerate
+            </Button>
+          ) : (
+            <Button
+              className="nodrag flex-1"
+              disabled={!canGenerate}
+              onClick={handleGenerate}
+              size="sm"
+            >
+              {data.isGenerating ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <Sparkles className="size-3" />
+              )}
+              {data.isGenerating ? "Generating..." : "Generate"}
+            </Button>
+          )}
+        </div>
       </div>
       <Handle
-        className="!bg-teal-500"
         position={Position.Bottom}
+        style={{ background: "var(--node-character)" }}
         type="source"
       />
     </div>
