@@ -37,7 +37,20 @@ export interface LocationNodeData {
   [key: string]: unknown;
 }
 
+export interface CharacterNodeData {
+  description: string;
+  frontalImage: string | null;
+  isGenerating: boolean;
+  sideImage: string | null;
+  [key: string]: unknown;
+}
+
 export type StyleNodeType = Node<StyleNodeData, "style">;
 export type SettingNodeType = Node<SettingNodeData, "setting">;
 export type LocationNodeType = Node<LocationNodeData, "location">;
-export type AppNode = StyleNodeType | SettingNodeType | LocationNodeType;
+export type CharacterNodeType = Node<CharacterNodeData, "character">;
+export type AppNode =
+  | StyleNodeType
+  | SettingNodeType
+  | LocationNodeType
+  | CharacterNodeType;

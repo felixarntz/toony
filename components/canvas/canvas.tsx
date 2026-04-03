@@ -10,6 +10,7 @@ import "@xyflow/react/dist/style.css";
 import { useFlowStore } from "@/lib/store";
 import type { AppNode } from "@/lib/types";
 import { AddNodePanel } from "./controls/add-node-panel";
+import { CharacterNode } from "./nodes/character-node";
 import { LocationNode } from "./nodes/location-node";
 import { SettingNode } from "./nodes/setting-node";
 import { StyleNode } from "./nodes/style-node";
@@ -18,6 +19,7 @@ const nodeTypes = {
   style: StyleNode,
   setting: SettingNode,
   location: LocationNode,
+  character: CharacterNode,
 };
 
 export function Canvas() {

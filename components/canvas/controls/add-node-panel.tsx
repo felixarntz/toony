@@ -1,17 +1,26 @@
 "use client";
 
 import { Panel } from "@xyflow/react";
-import { MapPin } from "lucide-react";
+import { MapPin, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MAX_LOCATION_NODES, useFlowStore } from "@/lib/store";
+import {
+  MAX_CHARACTER_NODES,
+  MAX_LOCATION_NODES,
+  useFlowStore,
+} from "@/lib/store";
 
 export function AddNodePanel() {
   const addLocationNode = useFlowStore((s) => s.addLocationNode);
+  const addCharacterNode = useFlowStore((s) => s.addCharacterNode);
   const locationCount = useFlowStore(
     (s) => s.nodes.filter((n) => n.type === "location").length
   );
+  const characterCount = useFlowStore(
+    (s) => s.nodes.filter((n) => n.type === "character").length
+  );
 
   const locationLimitReached = locationCount >= MAX_LOCATION_NODES;
+  const characterLimitReached = characterCount >= MAX_CHARACTER_NODES;
 
   return (
     <Panel position="top-right">
@@ -31,6 +40,23 @@ export function AddNodePanel() {
           <MapPin className="size-3" />
           Location{" "}
           {locationLimitReached && `(${locationCount}/${MAX_LOCATION_NODES})`}
+        </Button>
+        <Button
+          className="nodrag"
+          disabled={characterLimitReached}
+          onClick={addCharacterNode}
+          size="sm"
+          title={
+            characterLimitReached
+              ? `Maximum ${MAX_CHARACTER_NODES} characters reached`
+              : "Add Character node"
+          }
+          variant="outline"
+        >
+          <User className="size-3" />
+          Character{" "}
+          {characterLimitReached &&
+            `(${characterCount}/${MAX_CHARACTER_NODES})`}
         </Button>
       </div>
     </Panel>

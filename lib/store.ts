@@ -3,6 +3,7 @@ import { applyNodeChanges, MarkerType } from "@xyflow/react";
 import { create } from "zustand";
 import type {
   AppNode,
+  CharacterNodeData,
   LocationNodeData,
   SettingNodeData,
   StyleNodeData,
@@ -10,6 +11,7 @@ import type {
 } from "@/lib/types";
 
 const MAX_LOCATION_NODES = 2;
+const MAX_CHARACTER_NODES = 3;
 
 interface GlobalSettings {
   imageModel: string;
@@ -17,13 +19,29 @@ interface GlobalSettings {
 }
 
 interface FlowState {
+  addCharacterNode: () => void;
   addLocationNode: () => void;
   edges: Edge[];
+  getCharacterCount: () => number;
   getLocationCount: () => number;
   globalSettings: GlobalSettings;
   nodes: AppNode[];
   onNodesChange: OnNodesChange<AppNode>;
+  removeCharacterNode: (opts: { nodeId: string }) => void;
   removeLocationNode: (opts: { nodeId: string }) => void;
+  setCharacterDescription: (opts: {
+    nodeId: string;
+    description: string;
+  }) => void;
+  setCharacterImages: (opts: {
+    nodeId: string;
+    frontalImage: string | null;
+    sideImage: string | null;
+  }) => void;
+  setCharacterIsGenerating: (opts: {
+    nodeId: string;
+    isGenerating: boolean;
+  }) => void;
   setCustomStyleDescription: (opts: { description: string }) => void;
   setLocationDescription: (opts: {
     nodeId: string;
@@ -118,6 +136,19 @@ function updateLocationNode(opts: {
   });
 }
 
+function updateCharacterNode(opts: {
+  nodes: AppNode[];
+  nodeId: string;
+  updater: (data: CharacterNodeData) => CharacterNodeData;
+}): AppNode[] {
+  return opts.nodes.map((node) => {
+    if (node.type === "character" && node.id === opts.nodeId) {
+      return { ...node, data: opts.updater(node.data as CharacterNodeData) };
+    }
+    return node;
+  });
+}
+
 function setNodesWithEdges(
   nodes: AppNode[]
 ): Pick<FlowState, "edges" | "nodes"> {
@@ -125,6 +156,7 @@ function setNodesWithEdges(
 }
 
 let locationCounter = 0;
+let characterCounter = 0; // biome-ignore lint: must be mutable
 
 export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: initialNodes,
@@ -135,6 +167,8 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   },
   getLocationCount: () =>
     get().nodes.filter((n) => n.type === "location").length,
+  getCharacterCount: () =>
+    get().nodes.filter((n) => n.type === "character").length,
   onNodesChange: (changes) =>
     set(setNodesWithEdges(applyNodeChanges(changes, get().nodes))),
   addLocationNode: () => {
@@ -161,6 +195,61 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     const filtered = nodes.filter((n) => n.id !== nodeId);
     set(setNodesWithEdges(filtered));
   },
+  addCharacterNode: () => {
+    const { nodes } = get();
+    const characterCount = nodes.filter((n) => n.type === "character").length;
+    if (characterCount >= MAX_CHARACTER_NODES) {
+      return;
+    }
+    characterCounter++;
+    const newNode: AppNode = {
+      id: `character-${characterCounter}`,
+      type: "character",
+      position: { x: 100 + characterCount * 400, y: 550 },
+      data: {
+        description: "",
+        frontalImage: null,
+        sideImage: null,
+        isGenerating: false,
+      },
+    };
+    set(setNodesWithEdges([...nodes, newNode]));
+  },
+  removeCharacterNode: ({ nodeId }) => {
+    const { nodes } = get();
+    const filtered = nodes.filter((n) => n.id !== nodeId);
+    set(setNodesWithEdges(filtered));
+  },
+  setCharacterDescription: ({ nodeId, description }) =>
+    set(
+      setNodesWithEdges(
+        updateCharacterNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, description }),
+        })
+      )
+    ),
+  setCharacterImages: ({ nodeId, frontalImage, sideImage }) =>
+    set(
+      setNodesWithEdges(
+        updateCharacterNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, frontalImage, sideImage }),
+        })
+      )
+    ),
+  setCharacterIsGenerating: ({ nodeId, isGenerating }) =>
+    set(
+      setNodesWithEdges(
+        updateCharacterNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, isGenerating }),
+        })
+      )
+    ),
   setStylePreset: ({ preset }) =>
     set(
       setNodesWithEdges(updateStyleNode(get().nodes, (d) => ({ ...d, preset })))
@@ -212,4 +301,21 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
 }));
 
-export { computeEdges, MAX_LOCATION_NODES };
+export { computeEdges, MAX_CHARACTER_NODES, MAX_LOCATION_NODES };
+
+if ((import.meta as unknown as Record<string, unknown>).hot) {
+  const hot = (import.meta as unknown as Record<string, unknown>).hot as {
+    dispose: (cb: (data: Record<string, unknown>) => void) => void;
+    data?: Record<string, unknown>;
+  };
+  hot.dispose((data: Record<string, unknown>) => {
+    data.storeState = useFlowStore.getState();
+    data.locationCounter = locationCounter;
+    data.characterCounter = characterCounter;
+  });
+  if (hot.data?.storeState) {
+    useFlowStore.setState(hot.data.storeState as FlowState);
+    locationCounter = (hot.data.locationCounter as number) ?? 0;
+    characterCounter = (hot.data.characterCounter as number) ?? 0;
+  }
+}
