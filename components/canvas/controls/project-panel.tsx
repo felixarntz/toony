@@ -92,38 +92,38 @@ export function ProjectPanel() {
           <div className="overflow-hidden">
             <div className="flex flex-col gap-2 pt-2">
               <Button
-                className="nodrag w-full justify-start"
+                className="nodrag h-8 w-full justify-start rounded-lg border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 text-foreground text-xs hover:bg-[var(--node-input-bg)]"
                 onClick={handleExportProject}
-                size="sm"
+                size="default"
                 title="Export project as JSON"
-                variant="outline"
+                variant="ghost"
               >
-                <Download className="size-3" />
+                <Download className="size-3.5 shrink-0 text-muted-foreground" />
                 Export Project
               </Button>
               <Button
-                className="nodrag w-full justify-start"
+                className="nodrag h-8 w-full justify-start rounded-lg border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 text-foreground text-xs hover:bg-[var(--node-input-bg)]"
                 onClick={handleImportProject}
-                size="sm"
+                size="default"
                 title="Import project from JSON"
-                variant="outline"
+                variant="ghost"
               >
-                <Upload className="size-3" />
+                <Upload className="size-3.5 shrink-0 text-muted-foreground" />
                 Import Project
               </Button>
               <Button
-                className="nodrag w-full justify-start"
+                className="nodrag h-8 w-full justify-start rounded-lg border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 text-foreground text-xs hover:bg-[var(--node-input-bg)]"
                 disabled={!hasAssets}
                 onClick={handleExportAssets}
-                size="sm"
+                size="default"
                 title={
                   hasAssets
                     ? "Export all generated assets as ZIP"
                     : "No generated assets to export"
                 }
-                variant="outline"
+                variant="ghost"
               >
-                <Package className="size-3" />
+                <Package className="size-3.5 shrink-0 text-muted-foreground" />
                 Export Assets
               </Button>
             </div>
