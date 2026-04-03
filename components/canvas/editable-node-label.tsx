@@ -59,7 +59,7 @@ export function EditableNodeLabel({
 
   return (
     <button
-      className={`nodrag mb-3 flex items-center gap-1.5 font-medium text-xs uppercase tracking-widest ${className}`}
+      className={`nodrag mb-2.5 flex items-center gap-1.5 rounded-md border border-transparent px-1.5 py-1 font-medium text-xs uppercase tracking-widest ${className}`}
       onClick={() => setEditing(true)}
       title="Click to rename"
       type="button"
