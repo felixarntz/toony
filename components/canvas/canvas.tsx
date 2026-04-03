@@ -1,14 +1,10 @@
 "use client";
 
-import {
-  Background,
-  BackgroundVariant,
-  Controls,
-  ReactFlow,
-} from "@xyflow/react";
+import { Controls, ReactFlow } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useFlowStore } from "@/lib/store";
 import type { AppNode } from "@/lib/types";
+import { AuroraBackground } from "./aurora-background";
 import { AddNodePanel } from "./controls/add-node-panel";
 import { ModelSettingsPanel } from "./controls/model-settings-panel";
 import { ProjectPanel } from "./controls/project-panel";
@@ -34,7 +30,8 @@ export function Canvas() {
   const onNodesChange = useFlowStore((s) => s.onNodesChange);
 
   return (
-    <div className="h-full w-full">
+    <div className="relative h-full w-full">
+      <AuroraBackground intensity={0.8} speed={0.1} />
       <ReactFlow<AppNode>
         colorMode="dark"
         edges={edges}
@@ -44,12 +41,6 @@ export function Canvas() {
         onNodesChange={onNodesChange}
         proOptions={{ hideAttribution: true }}
       >
-        <Background
-          color="oklch(0.16 0 0)"
-          gap={24}
-          size={1}
-          variant={BackgroundVariant.Dots}
-        />
         <Controls />
         <AddNodePanel />
         <ModelSettingsPanel />
