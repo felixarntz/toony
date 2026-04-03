@@ -21,6 +21,8 @@ Toony treats storytelling as a graph: connect style, character, location, and sc
 - [Next.js](https://nextjs.org) (App Router)
 - [React Flow](https://reactflow.dev) (node-based canvas)
 - [AI SDK](https://ai-sdk.dev) with [AI Gateway](https://ai-sdk.dev/docs/ai-sdk-core/ai-gateway) (image and video generation)
+  - Gemini models (Nano Banana) for image generation
+  - Veo, Grok, and Kling models for video generation
 - [Zustand](https://zustand-demo.pmnd.rs) (state management)
 - [shadcn/ui](https://ui.shadcn.com) (UI components)
 - [Tailwind CSS](https://tailwindcss.com) (styling)
