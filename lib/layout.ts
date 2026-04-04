@@ -7,6 +7,7 @@ export const NODE_WIDTHS: Record<string, number> = {
   character: 320,
   storyImage: 384,
   movie: 384,
+  comicStrip: 384,
 };
 
 export const NODE_HEIGHTS: Record<string, number> = {
@@ -16,6 +17,7 @@ export const NODE_HEIGHTS: Record<string, number> = {
   character: 500,
   storyImage: 550,
   movie: 350,
+  comicStrip: 440,
 };
 
 const ROW_GAP = 60;
@@ -26,7 +28,7 @@ const ROW_ORDER: string[][] = [
   ["style", "setting"],
   ["location", "character"],
   ["storyImage"],
-  ["movie"],
+  ["movie", "comicStrip"],
 ];
 
 interface RowEntry {
@@ -62,7 +64,7 @@ function computeRowWidth(opts: { entries: RowEntry[] }): number {
  * Row 1: Style + Setting
  * Row 2: Location nodes + Character nodes
  * Row 3: Story Image nodes
- * Row 4: Movie node
+ * Row 4: Movie + Comic Strip nodes
  *
  * Nodes within each row are centered relative to the widest row.
  */

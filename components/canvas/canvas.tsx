@@ -9,6 +9,7 @@ import { AddNodePanel } from "./controls/add-node-panel";
 import { ModelSettingsPanel } from "./controls/model-settings-panel";
 import { ProjectPanel } from "./controls/project-panel";
 import { CharacterNode } from "./nodes/character-node";
+import { ComicStripNode } from "./nodes/comic-strip-node";
 import { LocationNode } from "./nodes/location-node";
 import { MovieNode } from "./nodes/movie-node";
 import { SettingNode } from "./nodes/setting-node";
@@ -22,6 +23,7 @@ const nodeTypes = {
   character: CharacterNode,
   storyImage: StoryImageNode,
   movie: MovieNode,
+  comicStrip: ComicStripNode,
 };
 
 export function Canvas() {

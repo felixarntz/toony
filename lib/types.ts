@@ -67,12 +67,21 @@ export interface MovieNodeData {
   [key: string]: unknown;
 }
 
+export interface ComicStripNodeData {
+  generatedPdfUrl: string | null;
+  generatedPngUrl: string | null;
+  isGenerating: boolean;
+  [key: string]: unknown;
+}
+
 export type StoryImageNodeType = Node<StoryImageNodeData, "storyImage">;
 export type MovieNodeType = Node<MovieNodeData, "movie">;
+export type ComicStripNodeType = Node<ComicStripNodeData, "comicStrip">;
 export type AppNode =
   | StyleNodeType
   | SettingNodeType
   | LocationNodeType
   | CharacterNodeType
   | StoryImageNodeType
-  | MovieNodeType;
+  | MovieNodeType
+  | ComicStripNodeType;

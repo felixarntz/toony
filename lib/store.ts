@@ -5,6 +5,7 @@ import { computeLayoutPositions, resolveOverlap } from "@/lib/layout";
 import type {
   AppNode,
   CharacterNodeData,
+  ComicStripNodeData,
   LocationNodeData,
   MovieNodeData,
   SettingNodeData,
@@ -17,6 +18,7 @@ const MAX_LOCATION_NODES = 2;
 const MAX_CHARACTER_NODES = 3;
 const MAX_STORY_IMAGE_NODES = 6;
 const MAX_MOVIE_NODES = 1;
+const MAX_COMIC_STRIP_NODES = 1;
 
 interface GlobalSettings {
   imageModel: string;
@@ -25,13 +27,16 @@ interface GlobalSettings {
 
 interface FlowState {
   addCharacterNode: () => void;
+  addComicStripNode: () => void;
   addLocationNode: () => void;
   addMovieNode: () => void;
   addStoryImageNode: () => void;
+  canAddComicStrip: () => boolean;
   canAddMovie: () => boolean;
   canAddStoryImage: () => boolean;
   edges: Edge[];
   getCharacterCount: () => number;
+  getComicStripCount: () => number;
   getLocationCount: () => number;
   getMovieCount: () => number;
   getStoryImageCount: () => number;
@@ -39,6 +44,7 @@ interface FlowState {
   nodes: AppNode[];
   onNodesChange: OnNodesChange<AppNode>;
   removeCharacterNode: (opts: { nodeId: string }) => void;
+  removeComicStripNode: (opts: { nodeId: string }) => void;
   removeLocationNode: (opts: { nodeId: string }) => void;
   removeMovieNode: (opts: { nodeId: string }) => void;
   removeStoryImageNode: (opts: { nodeId: string }) => void;
@@ -56,6 +62,18 @@ interface FlowState {
     isGenerating: boolean;
   }) => void;
   setCharacterName: (opts: { nodeId: string; name: string }) => void;
+  setComicStripGeneratedPdfUrl: (opts: {
+    nodeId: string;
+    url: string | null;
+  }) => void;
+  setComicStripGeneratedPngUrl: (opts: {
+    nodeId: string;
+    url: string | null;
+  }) => void;
+  setComicStripIsGenerating: (opts: {
+    nodeId: string;
+    isGenerating: boolean;
+  }) => void;
   setCustomStyleDescription: (opts: { description: string }) => void;
   setImageModel: (opts: { model: string }) => void;
   setLocationDescription: (opts: {
@@ -208,18 +226,32 @@ function computeEdges(nodes: AppNode[]): Edge[] {
     });
   }
 
-  const movieNode = nodes.find((n) => n.type === "movie");
-  if (movieNode) {
+  const addTerminalNodeEdges = (opts: {
+    color: string;
+    targetNode: AppNode | undefined;
+  }): void => {
+    if (!opts.targetNode) {
+      return;
+    }
     for (const siNode of storyImageNodes) {
       edges.push({
-        id: `${siNode.id}->${movieNode.id}`,
+        id: `${siNode.id}->${opts.targetNode.id}`,
         source: siNode.id,
-        target: movieNode.id,
-        markerEnd: makeMarker("#ec4899"),
-        style: { stroke: "#ec4899" },
+        target: opts.targetNode.id,
+        markerEnd: makeMarker(opts.color),
+        style: { stroke: opts.color },
       });
     }
-  }
+  };
+
+  addTerminalNodeEdges({
+    targetNode: nodes.find((n) => n.type === "movie"),
+    color: "#ec4899",
+  });
+  addTerminalNodeEdges({
+    targetNode: nodes.find((n) => n.type === "comicStrip"),
+    color: "#22d3ee",
+  });
 
   return edges;
 }
@@ -303,6 +335,19 @@ function updateMovieNode(opts: {
   });
 }
 
+function updateComicStripNode(opts: {
+  nodes: AppNode[];
+  nodeId: string;
+  updater: (data: ComicStripNodeData) => ComicStripNodeData;
+}): AppNode[] {
+  return opts.nodes.map((node) => {
+    if (node.type === "comicStrip" && node.id === opts.nodeId) {
+      return { ...node, data: opts.updater(node.data as ComicStripNodeData) };
+    }
+    return node;
+  });
+}
+
 function setNodesWithEdges(
   nodes: AppNode[]
 ): Pick<FlowState, "edges" | "nodes"> {
@@ -312,6 +357,7 @@ function setNodesWithEdges(
 let locationCounter = 0;
 let characterCounter = 0;
 let storyImageCounter = 0;
+let comicStripCounter = 0;
 
 export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: initialNodes,
@@ -327,6 +373,18 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   getStoryImageCount: () =>
     get().nodes.filter((n) => n.type === "storyImage").length,
   getMovieCount: () => get().nodes.filter((n) => n.type === "movie").length,
+  getComicStripCount: () =>
+    get().nodes.filter((n) => n.type === "comicStrip").length,
+  canAddComicStrip: () => {
+    const { nodes } = get();
+    const hasCompletedStoryImage = nodes.some(
+      (n) =>
+        n.type === "storyImage" &&
+        (n.data as StoryImageNodeData).generatedImage !== null
+    );
+    const comicStripCount = nodes.filter((n) => n.type === "comicStrip").length;
+    return hasCompletedStoryImage && comicStripCount < MAX_COMIC_STRIP_NODES;
+  },
   canAddMovie: () => {
     const { nodes } = get();
     const hasCompletedStoryImage = nodes.some(
@@ -493,7 +551,34 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       )
     );
   },
+  addComicStripNode: () => {
+    const state = get();
+    if (!state.canAddComicStrip()) {
+      return;
+    }
+    comicStripCounter++;
+    const newNode: AppNode = {
+      id: `comic-strip-${comicStripCounter}`,
+      type: "comicStrip",
+      position: { x: 0, y: 0 },
+      data: {
+        generatedPdfUrl: null,
+        generatedPngUrl: null,
+        isGenerating: false,
+      },
+    };
+    set(
+      setNodesWithEdges(
+        applyLayoutPositions({ nodes: [...state.nodes, newNode] })
+      )
+    );
+  },
   removeMovieNode: ({ nodeId }) => {
+    const { nodes } = get();
+    const filtered = nodes.filter((n) => n.id !== nodeId);
+    set(setNodesWithEdges(filtered));
+  },
+  removeComicStripNode: ({ nodeId }) => {
     const { nodes } = get();
     const filtered = nodes.filter((n) => n.id !== nodeId);
     set(setNodesWithEdges(filtered));
@@ -565,6 +650,36 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           nodes: get().nodes,
           nodeId,
           updater: (d) => ({ ...d, phase }),
+        })
+      )
+    ),
+  setComicStripGeneratedPngUrl: ({ nodeId, url }) =>
+    set(
+      setNodesWithEdges(
+        updateComicStripNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, generatedPngUrl: url }),
+        })
+      )
+    ),
+  setComicStripGeneratedPdfUrl: ({ nodeId, url }) =>
+    set(
+      setNodesWithEdges(
+        updateComicStripNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, generatedPdfUrl: url }),
+        })
+      )
+    ),
+  setComicStripIsGenerating: ({ nodeId, isGenerating }) =>
+    set(
+      setNodesWithEdges(
+        updateComicStripNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, isGenerating }),
         })
       )
     ),
@@ -682,6 +797,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
 export {
   computeEdges,
   MAX_CHARACTER_NODES,
+  MAX_COMIC_STRIP_NODES,
   MAX_LOCATION_NODES,
   MAX_MOVIE_NODES,
   MAX_STORY_IMAGE_NODES,
@@ -697,11 +813,13 @@ if ((import.meta as unknown as Record<string, unknown>).hot) {
     data.locationCounter = locationCounter;
     data.characterCounter = characterCounter;
     data.storyImageCounter = storyImageCounter;
+    data.comicStripCounter = comicStripCounter;
   });
   if (hot.data?.storeState) {
     useFlowStore.setState(hot.data.storeState as FlowState);
     locationCounter = (hot.data.locationCounter as number) ?? 0;
     characterCounter = (hot.data.characterCounter as number) ?? 0;
     storyImageCounter = (hot.data.storyImageCounter as number) ?? 0;
+    comicStripCounter = (hot.data.comicStripCounter as number) ?? 0;
   }
 }

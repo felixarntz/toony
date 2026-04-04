@@ -155,6 +155,27 @@ function collectNodeAssets({ node }: { node: AppNode }): AssetEntry[] {
         ];
       }
       return [];
+    case "comicStrip": {
+      const entries: AssetEntry[] = [];
+      if (node.data.generatedPngUrl?.startsWith("data:image/")) {
+        entries.push(
+          imageAssetEntry({
+            dataUrl: node.data.generatedPngUrl,
+            path: "comic-strip/comic-strip",
+          })
+        );
+      }
+      if (node.data.generatedPdfUrl?.startsWith("data:application/pdf")) {
+        const raw = stripDataUrlPrefix({
+          dataUrl: node.data.generatedPdfUrl,
+        });
+        entries.push({
+          path: "comic-strip/comic-strip.pdf",
+          data: base64ToUint8Array({ base64: raw }),
+        });
+      }
+      return entries;
+    }
     default:
       return [];
   }

@@ -97,6 +97,20 @@ describe("computeLayoutPositions", () => {
     expect(moviePos.y).toBeGreaterThan(siPos.y);
   });
 
+  it("positions comic strip node on row 4 below story images", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({ id: "storyImage-1", type: "storyImage" }),
+      makeNode({ id: "comic-strip-1", type: "comicStrip" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const siPos = getPos({ positions, id: "storyImage-1" });
+    const comicPos = getPos({ positions, id: "comic-strip-1" });
+    expect(comicPos.y).toBeGreaterThan(siPos.y);
+  });
+
   it("places multiple story images side by side", () => {
     const nodes: AppNode[] = [
       makeNode({ id: "style", type: "style" }),

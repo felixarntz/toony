@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   MAX_CHARACTER_NODES,
+  MAX_COMIC_STRIP_NODES,
   MAX_LOCATION_NODES,
   MAX_MOVIE_NODES,
   MAX_STORY_IMAGE_NODES,
@@ -43,6 +44,7 @@ describe("store - location nodes", () => {
     expect(locationNodes).toHaveLength(1);
     expect(locationNodes[0].type).toBe("location");
     expect(locationNodes[0].data).toEqual({
+      name: "",
       description: "",
       generatedImage: null,
       isGenerating: false,
@@ -196,6 +198,7 @@ describe("store - character nodes", () => {
     expect(characterNodes).toHaveLength(1);
     expect(characterNodes[0].type).toBe("character");
     expect(characterNodes[0].data).toEqual({
+      name: "",
       description: "",
       frontalImage: null,
       sideImage: null,
@@ -562,6 +565,16 @@ function getMovieNodeId(): string {
   return node.id;
 }
 
+function getComicStripNodeId(): string {
+  const node = useFlowStore
+    .getState()
+    .nodes.find((n) => n.type === "comicStrip");
+  if (!node) {
+    throw new Error("No comic strip node found");
+  }
+  return node.id;
+}
+
 describe("store - canAddMovie", () => {
   it("returns false when no completed story image exists", () => {
     expect(useFlowStore.getState().canAddMovie()).toBe(false);
@@ -582,6 +595,29 @@ describe("store - canAddMovie", () => {
     setupCompletedStoryImage();
     useFlowStore.getState().addMovieNode();
     expect(useFlowStore.getState().canAddMovie()).toBe(false);
+  });
+});
+
+describe("store - canAddComicStrip", () => {
+  it("returns false when no completed story image exists", () => {
+    expect(useFlowStore.getState().canAddComicStrip()).toBe(false);
+  });
+
+  it("returns false when story images exist but none are completed", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    expect(useFlowStore.getState().canAddComicStrip()).toBe(false);
+  });
+
+  it("returns true when at least one completed story image exists", () => {
+    setupCompletedStoryImage();
+    expect(useFlowStore.getState().canAddComicStrip()).toBe(true);
+  });
+
+  it("returns false when comic strip already exists", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addComicStripNode();
+    expect(useFlowStore.getState().canAddComicStrip()).toBe(false);
   });
 });
 
@@ -645,6 +681,66 @@ describe("store - movie nodes", () => {
   });
 });
 
+describe("store - comic strip nodes", () => {
+  it("starts with no comic strip nodes", () => {
+    const comicStripNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "comicStrip");
+    expect(comicStripNodes).toHaveLength(0);
+  });
+
+  it("cannot add comic strip without preconditions", () => {
+    useFlowStore.getState().addComicStripNode();
+    const comicStripNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "comicStrip");
+    expect(comicStripNodes).toHaveLength(0);
+  });
+
+  it("adds a comic strip node when preconditions are met", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addComicStripNode();
+    const comicStripNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "comicStrip");
+    expect(comicStripNodes).toHaveLength(1);
+    expect(comicStripNodes[0].data).toEqual({
+      generatedPdfUrl: null,
+      generatedPngUrl: null,
+      isGenerating: false,
+    });
+  });
+
+  it("enforces max comic strip constraint", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addComicStripNode();
+    useFlowStore.getState().addComicStripNode();
+    const comicStripNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "comicStrip");
+    expect(comicStripNodes).toHaveLength(MAX_COMIC_STRIP_NODES);
+  });
+
+  it("removes a comic strip node", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addComicStripNode();
+    const nodeId = getComicStripNodeId();
+
+    useFlowStore.getState().removeComicStripNode({ nodeId });
+    const comicStripNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "comicStrip");
+    expect(comicStripNodes).toHaveLength(0);
+  });
+
+  it("getComicStripCount returns correct count", () => {
+    setupCompletedStoryImage();
+    expect(useFlowStore.getState().getComicStripCount()).toBe(0);
+    useFlowStore.getState().addComicStripNode();
+    expect(useFlowStore.getState().getComicStripCount()).toBe(1);
+  });
+});
+
 describe("computeEdges - movie", () => {
   it("creates edges from all story images to movie node", () => {
     setupCompletedStoryImage();
@@ -673,6 +769,39 @@ describe("computeEdges - movie", () => {
       (e) => e.source === "movie" || e.target === "movie"
     );
     expect(movieEdges).toHaveLength(0);
+  });
+});
+
+describe("computeEdges - comic strip", () => {
+  it("creates edges from all story images to comic strip node", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addComicStripNode();
+
+    const storyNodes = useFlowStore
+      .getState()
+      .nodes.filter((n) => n.type === "storyImage");
+    const comicNodeId = getComicStripNodeId();
+    const { edges } = useFlowStore.getState();
+
+    for (const siNode of storyNodes) {
+      const edge = edges.find(
+        (e) => e.source === siNode.id && e.target === comicNodeId
+      );
+      expect(edge).toBeDefined();
+    }
+  });
+
+  it("edges update when comic strip is removed", () => {
+    setupCompletedStoryImage();
+    useFlowStore.getState().addComicStripNode();
+    const comicNodeId = getComicStripNodeId();
+    useFlowStore.getState().removeComicStripNode({ nodeId: comicNodeId });
+
+    const { edges } = useFlowStore.getState();
+    const comicEdges = edges.filter(
+      (e) => e.source === comicNodeId || e.target === comicNodeId
+    );
+    expect(comicEdges).toHaveLength(0);
   });
 });
 

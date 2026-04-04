@@ -86,6 +86,21 @@ describe("serializeProject / deserializeProject round-trip", () => {
     });
 
     useFlowStore.getState().addMovieNode();
+    useFlowStore.getState().addComicStripNode();
+    const comicNode = useFlowStore
+      .getState()
+      .nodes.find((n) => n.type === "comicStrip");
+    if (!comicNode) {
+      throw new Error("No comic strip node");
+    }
+    useFlowStore.getState().setComicStripGeneratedPngUrl({
+      nodeId: comicNode.id,
+      url: "data:image/png;base64,AQID",
+    });
+    useFlowStore.getState().setComicStripGeneratedPdfUrl({
+      nodeId: comicNode.id,
+      url: "data:application/pdf;base64,BAUG",
+    });
 
     const beforeJson = serializeProject();
     const beforeState = useFlowStore.getState();
@@ -207,6 +222,69 @@ describe("collectAssets", () => {
     const assets = collectAssets({ nodes: useFlowStore.getState().nodes });
     const storyAsset = assets.find((a) => a.path.startsWith("story-frames/"));
     expect(storyAsset).toBeDefined();
+  });
+
+  it("collects comic strip png and pdf assets", () => {
+    useFlowStore.getState().addLocationNode();
+    const locNode = useFlowStore
+      .getState()
+      .nodes.find((n) => n.type === "location");
+    if (!locNode) {
+      throw new Error("No location node");
+    }
+    useFlowStore.getState().setLocationGeneratedImage({
+      nodeId: locNode.id,
+      image: "data:image/png;base64,AQID",
+    });
+    useFlowStore.getState().addCharacterNode();
+    const charNode = useFlowStore
+      .getState()
+      .nodes.find((n) => n.type === "character");
+    if (!charNode) {
+      throw new Error("No character node");
+    }
+    useFlowStore.getState().setCharacterImages({
+      nodeId: charNode.id,
+      frontalImage: "data:image/png;base64,AQID",
+      sideImage: "data:image/png;base64,BAUG",
+    });
+    useFlowStore.getState().addStoryImageNode();
+    const siNode = useFlowStore
+      .getState()
+      .nodes.find((n) => n.type === "storyImage");
+    if (!siNode) {
+      throw new Error("No story image node");
+    }
+    useFlowStore.getState().setStoryImageGeneratedImage({
+      nodeId: siNode.id,
+      image: "data:image/png;base64,AQID",
+    });
+    useFlowStore.getState().addComicStripNode();
+    const comicNode = useFlowStore
+      .getState()
+      .nodes.find((n) => n.type === "comicStrip");
+    if (!comicNode) {
+      throw new Error("No comic strip node");
+    }
+    useFlowStore.getState().setComicStripGeneratedPngUrl({
+      nodeId: comicNode.id,
+      url: "data:image/png;base64,AQID",
+    });
+    useFlowStore.getState().setComicStripGeneratedPdfUrl({
+      nodeId: comicNode.id,
+      url: "data:application/pdf;base64,BAUG",
+    });
+
+    const assets = collectAssets({ nodes: useFlowStore.getState().nodes });
+    const comicPngAsset = assets.find(
+      (a) => a.path === "comic-strip/comic-strip.png"
+    );
+    const comicPdfAsset = assets.find(
+      (a) => a.path === "comic-strip/comic-strip.pdf"
+    );
+
+    expect(comicPngAsset).toBeDefined();
+    expect(comicPdfAsset).toBeDefined();
   });
 });
 

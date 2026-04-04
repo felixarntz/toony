@@ -66,6 +66,12 @@ export function ProjectPanel() {
     if (n.type === "movie" && n.data.generatedVideoUrl) {
       return true;
     }
+    if (
+      n.type === "comicStrip" &&
+      (n.data.generatedPngUrl || n.data.generatedPdfUrl)
+    ) {
+      return true;
+    }
     return false;
   });
 
