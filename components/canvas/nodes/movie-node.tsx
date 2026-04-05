@@ -186,7 +186,7 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
           className="mb-3 font-medium text-xs uppercase tracking-widest"
           style={{ color: "var(--node-movie)" }}
         >
-          Movie
+          Movie (experimental)
         </div>
 
         {data.isGenerating && (
