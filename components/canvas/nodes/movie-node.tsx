@@ -1,7 +1,7 @@
 "use client";
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { Loader2, Sparkles } from "lucide-react";
+import { Download, FileVideo, Loader2, Sparkles } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { NodeErrorBanner } from "@/components/canvas/node-error-banner";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
@@ -21,6 +21,10 @@ interface FFmpegInstance {
 }
 
 const FFMPEG_CDN_BASE = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
+const WEBM_INPUT_FILENAME = "download-source.mp4";
+const WEBM_OUTPUT_FILENAME = "download-output.webm";
+const MP4_DOWNLOAD_FILENAME = "movie.mp4";
+const WEBM_DOWNLOAD_FILENAME = "movie.webm";
 
 function getUsableStoryImage(opts: {
   storyImage: string | null | undefined;
@@ -111,6 +115,21 @@ async function prepareClipInput(opts: {
   };
 }
 
+function downloadFromUrl(opts: { filename: string; url: string }): void {
+  const link = document.createElement("a");
+  link.href = opts.url;
+  link.download = opts.filename;
+  link.click();
+}
+
+async function readVideoBytes(opts: { url: string }): Promise<Uint8Array> {
+  const response = await fetch(opts.url);
+  if (!response.ok) {
+    throw new Error("Failed to read generated video");
+  }
+  return new Uint8Array(await response.arrayBuffer());
+}
+
 export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
   const removeMovieNode = useFlowStore((s) => s.removeMovieNode);
   const setMovieGeneratedVideoUrl = useFlowStore(
@@ -127,6 +146,7 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
 
   const ffmpegRef = useRef<FFmpegInstance | null>(null);
   const [ffmpegLoading, setFfmpegLoading] = useState(false);
+  const [isExportingWebm, setIsExportingWebm] = useState(false);
 
   const completedStoryImages = nodes.filter((n) => {
     if (n.type !== "storyImage") {
@@ -283,6 +303,67 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
     nodes,
   ]);
 
+  const handleDownloadMp4 = useCallback(() => {
+    if (!data.generatedVideoUrl || data.isGenerating || isExportingWebm) {
+      return;
+    }
+
+    downloadFromUrl({
+      url: data.generatedVideoUrl,
+      filename: MP4_DOWNLOAD_FILENAME,
+    });
+  }, [data.generatedVideoUrl, data.isGenerating, isExportingWebm]);
+
+  const handleDownloadWebm = useCallback(async () => {
+    if (!data.generatedVideoUrl || data.isGenerating || isExportingWebm) {
+      return;
+    }
+
+    setIsExportingWebm(true);
+    setMovieError({ nodeId: id, error: null });
+
+    try {
+      const sourceVideoBytes = await readVideoBytes({
+        url: data.generatedVideoUrl,
+      });
+      const ffmpeg = await loadFfmpeg();
+
+      await ffmpeg.writeFile(WEBM_INPUT_FILENAME, sourceVideoBytes);
+      await ffmpeg.exec([
+        "-i",
+        WEBM_INPUT_FILENAME,
+        "-c:v",
+        "libvpx-vp9",
+        "-b:v",
+        "0",
+        "-crf",
+        "32",
+        "-c:a",
+        "libopus",
+        WEBM_OUTPUT_FILENAME,
+      ]);
+
+      const outputData = await ffmpeg.readFile(WEBM_OUTPUT_FILENAME);
+      const webmBlob = new Blob([outputData.buffer as ArrayBuffer], {
+        type: "video/webm",
+      });
+      const webmUrl = URL.createObjectURL(webmBlob);
+      downloadFromUrl({ url: webmUrl, filename: WEBM_DOWNLOAD_FILENAME });
+      URL.revokeObjectURL(webmUrl);
+    } catch (error: unknown) {
+      setMovieError({ nodeId: id, error: parseUnknownError({ error }) });
+    } finally {
+      setIsExportingWebm(false);
+    }
+  }, [
+    data.generatedVideoUrl,
+    data.isGenerating,
+    id,
+    isExportingWebm,
+    loadFfmpeg,
+    setMovieError,
+  ]);
+
   const getPhaseLabel = () => {
     if (data.phase === "preparing-images") {
       return "Preparing 16:9 story images...";
@@ -364,6 +445,46 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
           )}
           {data.isGenerating ? "Generating..." : "Generate Movie"}
         </Button>
+
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <Button
+            className="nodrag"
+            disabled={
+              !data.generatedVideoUrl || data.isGenerating || isExportingWebm
+            }
+            onClick={handleDownloadMp4}
+            size="sm"
+            variant="outline"
+          >
+            <FileVideo className="size-3" />
+            MP4
+          </Button>
+          <Button
+            className="nodrag"
+            disabled={
+              !data.generatedVideoUrl || data.isGenerating || isExportingWebm
+            }
+            onClick={handleDownloadWebm}
+            size="sm"
+            variant="outline"
+          >
+            {isExportingWebm ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <FileVideo className="size-3" />
+            )}
+            WebM
+          </Button>
+        </div>
+
+        {data.generatedVideoUrl && (
+          <div className="mt-2 text-muted-foreground text-xs">
+            <span className="inline-flex items-center gap-1">
+              <Download className="size-3" />
+              Video ready
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
