@@ -4,7 +4,7 @@ import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Download, FileImage, FileText, Loader2, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { PDFDocument } from "pdf-lib";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
 import { Button } from "@/components/ui/button";
 import { useFlowStore } from "@/lib/store";
@@ -12,7 +12,7 @@ import type { ComicStripNodeType, StoryImageNodeData } from "@/lib/types";
 
 const MAX_COMIC_FRAMES = 6;
 const PANELS_PER_ROW = 2;
-const PANEL_WIDTH = 900;
+const PANEL_HEIGHT = 900;
 const PANEL_BORDER_WIDTH = 16;
 const PANEL_GAP = 24;
 const CANVAS_PADDING = 28;
@@ -31,6 +31,25 @@ interface FittedRect {
 interface PanelSize {
   panelHeight: number;
   panelWidth: number;
+}
+
+interface ComicPanelLayout {
+  image: HTMLImageElement;
+  panelHeight: number;
+  panelWidth: number;
+  panelX: number;
+  panelY: number;
+}
+
+interface ComicStripLayout {
+  canvasHeight: number;
+  canvasWidth: number;
+  panels: ComicPanelLayout[];
+}
+
+interface ImageDimensions {
+  height: number;
+  width: number;
 }
 
 function ensureDataImageUrl(opts: { value: string }): string {
@@ -73,14 +92,111 @@ export function getPanelSizeFromFrame(opts: {
   imageHeight: number;
   imageWidth: number;
 }): PanelSize {
-  const panelWidth = PANEL_WIDTH;
+  const panelHeight = PANEL_HEIGHT;
   const frameAspectRatio =
-    opts.imageWidth > 0 ? opts.imageHeight / opts.imageWidth : 1;
+    opts.imageHeight > 0 ? opts.imageWidth / opts.imageHeight : 1;
 
   return {
-    panelWidth,
-    panelHeight: Math.round(panelWidth * frameAspectRatio),
+    panelHeight,
+    panelWidth: Math.round(panelHeight * frameAspectRatio),
   };
+}
+
+export function getImageDimensionsFromPngDataUrl(opts: {
+  dataUrl: string;
+}): ImageDimensions | null {
+  const [header, base64] = opts.dataUrl.split(",", 2);
+  if (!(header?.startsWith("data:image/png;base64") && base64)) {
+    return null;
+  }
+
+  const bytes = Uint8Array.from(
+    Array.from(atob(base64), (c) => c.charCodeAt(0))
+  );
+  const hasIhdrChunk =
+    bytes[12] === 73 &&
+    bytes[13] === 72 &&
+    bytes[14] === 68 &&
+    bytes[15] === 82;
+  if (bytes.length < 24 || !hasIhdrChunk) {
+    return null;
+  }
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const width = view.getUint32(16);
+  const height = view.getUint32(20);
+
+  if (width <= 0 || height <= 0) {
+    return null;
+  }
+
+  return { width, height };
+}
+
+export function buildComicStripLayout(opts: {
+  images: HTMLImageElement[];
+}): ComicStripLayout {
+  const panelSpecs = opts.images.map((image, index) => {
+    const row = Math.floor(index / PANELS_PER_ROW);
+    const col = index % PANELS_PER_ROW;
+    const { panelWidth, panelHeight } = getPanelSizeFromFrame({
+      imageWidth: image.width,
+      imageHeight: image.height,
+    });
+
+    return { row, col, panelWidth, panelHeight, image };
+  });
+
+  const rowHeights = panelSpecs.reduce<Map<number, number>>((acc, spec) => {
+    const current = acc.get(spec.row) ?? 0;
+    acc.set(spec.row, Math.max(current, spec.panelHeight));
+    return acc;
+  }, new Map());
+
+  const rows = Math.ceil(opts.images.length / PANELS_PER_ROW);
+  const rowOffsets = new Map<number, number>();
+  let totalPanelHeight = 0;
+
+  for (let row = 0; row < rows; row++) {
+    rowOffsets.set(row, totalPanelHeight);
+    totalPanelHeight += rowHeights.get(row) ?? 0;
+  }
+
+  const panels = panelSpecs.map((spec) => {
+    const rowSpecs = panelSpecs.filter(
+      (panelSpec) => panelSpec.row === spec.row
+    );
+    const panelX =
+      CANVAS_PADDING +
+      rowSpecs
+        .filter((panelSpec) => panelSpec.col < spec.col)
+        .reduce((acc, panelSpec) => acc + panelSpec.panelWidth + PANEL_GAP, 0);
+    const panelY =
+      CANVAS_PADDING +
+      (rowOffsets.get(spec.row) ?? 0) +
+      spec.row * PANEL_GAP +
+      ((rowHeights.get(spec.row) ?? spec.panelHeight) - spec.panelHeight) / 2;
+
+    return {
+      image: spec.image,
+      panelHeight: spec.panelHeight,
+      panelWidth: spec.panelWidth,
+      panelX,
+      panelY,
+    };
+  });
+
+  const rowWidths = Array.from({ length: rows }, (_, row) => {
+    const specs = panelSpecs.filter((spec) => spec.row === row);
+    const panelWidths = specs.reduce((acc, spec) => acc + spec.panelWidth, 0);
+    const gaps = Math.max(0, specs.length - 1) * PANEL_GAP;
+    return panelWidths + gaps;
+  });
+  const canvasWidth = Math.max(...rowWidths, 0) + CANVAS_PADDING * 2;
+  const canvasHeight =
+    totalPanelHeight + Math.max(0, rows - 1) * PANEL_GAP + CANVAS_PADDING * 2;
+
+  return { panels, canvasWidth, canvasHeight };
 }
 
 function dataUrlToUint8Array(opts: { dataUrl: string }): Uint8Array {
@@ -121,18 +237,9 @@ async function renderComicStripPng(opts: {
   const loadedFrames = await Promise.all(
     opts.frames.map(({ src }) => loadImageElement({ src }))
   );
-
-  const { panelWidth, panelHeight } = getPanelSizeFromFrame({
-    imageWidth: loadedFrames[0]?.width ?? 0,
-    imageHeight: loadedFrames[0]?.height ?? 0,
+  const { panels, canvasWidth, canvasHeight } = buildComicStripLayout({
+    images: loadedFrames,
   });
-
-  const frameCount = opts.frames.length;
-  const rows = Math.ceil(frameCount / PANELS_PER_ROW);
-  const canvasWidth =
-    PANELS_PER_ROW * panelWidth + PANEL_GAP + CANVAS_PADDING * 2;
-  const canvasHeight =
-    rows * panelHeight + Math.max(0, rows - 1) * PANEL_GAP + CANVAS_PADDING * 2;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasWidth;
@@ -146,35 +253,50 @@ async function renderComicStripPng(opts: {
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  for (const [index, image] of loadedFrames.entries()) {
-    const row = Math.floor(index / PANELS_PER_ROW);
-    const col = index % PANELS_PER_ROW;
-
-    const panelX = CANVAS_PADDING + col * (panelWidth + PANEL_GAP);
-    const panelY = CANVAS_PADDING + row * (panelHeight + PANEL_GAP);
-
+  for (const panel of panels) {
     context.fillStyle = "#ffffff";
-    context.fillRect(panelX, panelY, panelWidth, panelHeight);
+    context.fillRect(
+      panel.panelX,
+      panel.panelY,
+      panel.panelWidth,
+      panel.panelHeight
+    );
 
     context.save();
     context.beginPath();
-    context.rect(panelX, panelY, panelWidth, panelHeight);
+    context.rect(
+      panel.panelX,
+      panel.panelY,
+      panel.panelWidth,
+      panel.panelHeight
+    );
     context.clip();
 
     const fitted = fitImageInPanel({
-      imageHeight: image.height,
-      imageWidth: image.width,
-      panelHeight,
-      panelWidth,
-      panelX,
-      panelY,
+      imageHeight: panel.image.height,
+      imageWidth: panel.image.width,
+      panelHeight: panel.panelHeight,
+      panelWidth: panel.panelWidth,
+      panelX: panel.panelX,
+      panelY: panel.panelY,
     });
-    context.drawImage(image, fitted.x, fitted.y, fitted.width, fitted.height);
+    context.drawImage(
+      panel.image,
+      fitted.x,
+      fitted.y,
+      fitted.width,
+      fitted.height
+    );
     context.restore();
 
     context.lineWidth = PANEL_BORDER_WIDTH;
     context.strokeStyle = "#000000";
-    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
+    context.strokeRect(
+      panel.panelX,
+      panel.panelY,
+      panel.panelWidth,
+      panel.panelHeight
+    );
   }
 
   return canvas.toDataURL("image/png");
@@ -212,6 +334,13 @@ export function ComicStripNode({ id, data }: NodeProps<ComicStripNodeType>) {
     (s) => s.setComicStripIsGenerating
   );
   const nodes = useFlowStore((s) => s.nodes);
+  const previewImageDimensions = useMemo(() => {
+    if (!data.generatedPngUrl) {
+      return null;
+    }
+
+    return getImageDimensionsFromPngDataUrl({ dataUrl: data.generatedPngUrl });
+  }, [data.generatedPngUrl]);
 
   const completedStoryImages = nodes
     .filter(
@@ -311,10 +440,10 @@ export function ComicStripNode({ id, data }: NodeProps<ComicStripNodeType>) {
             <Image
               alt="Generated comic strip"
               className="w-full rounded"
-              height={240}
+              height={previewImageDimensions?.height ?? 1}
               src={data.generatedPngUrl}
               unoptimized
-              width={352}
+              width={previewImageDimensions?.width ?? 1}
             />
           </div>
         )}

@@ -22,6 +22,7 @@ import {
   STORY_IMAGE_TOP_TARGET_HANDLE_ID,
 } from "@/lib/edge-handles";
 import { useFlowStore } from "@/lib/store";
+import { getStoryImageAspectRatio } from "@/lib/story-image-aspect-ratio";
 import {
   getSettingDescription,
   getStyleDescription,
@@ -132,6 +133,7 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
           characters,
           sceneDescription: data.sceneDescription,
           previousFrameImage: previousStoryImage?.generatedImage ?? null,
+          aspectRatio: getStoryImageAspectRatio({ index: myIndex }),
           model: globalSettings.imageModel,
         }),
       });
@@ -153,6 +155,7 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
     nodes,
     styleDescription,
     settingDescription,
+    myIndex,
     globalSettings.imageModel,
     previousStoryImage?.generatedImage,
     setStoryImageIsGenerating,

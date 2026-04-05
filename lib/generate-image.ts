@@ -1,14 +1,23 @@
+import type { GoogleLanguageModelOptions } from "@ai-sdk/google";
 import type { Prompt } from "ai";
 import { generateText } from "ai";
 
 export async function generateImage(opts: {
   prompt: Prompt;
   model: string;
+  aspectRatio?: NonNullable<
+    GoogleLanguageModelOptions["imageConfig"]
+  >["aspectRatio"];
 }): Promise<Response> {
   const result = await generateText({
     model: opts.model,
     providerOptions: {
-      google: { responseModalities: ["IMAGE"] },
+      google: {
+        responseModalities: ["IMAGE"],
+        imageConfig: {
+          aspectRatio: opts.aspectRatio ?? "1:1",
+        },
+      } as GoogleLanguageModelOptions,
     },
     ...opts.prompt,
   });
