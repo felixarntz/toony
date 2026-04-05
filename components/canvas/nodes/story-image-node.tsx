@@ -4,6 +4,7 @@ import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { useCallback } from "react";
 import { ImageOverlay } from "@/components/canvas/image-overlay";
+import { NodeErrorBanner } from "@/components/canvas/node-error-banner";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
 import { useLiveTextDraft } from "@/components/canvas/use-live-text-draft";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { parseApiErrorResponse, parseUnknownError } from "@/lib/api-error";
 import {
   STORY_IMAGE_BOTTOM_SOURCE_HANDLE_ID,
   STORY_IMAGE_LEFT_TARGET_HANDLE_ID,
@@ -50,6 +52,7 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
   const setStoryImageIsGenerating = useFlowStore(
     (s) => s.setStoryImageIsGenerating
   );
+  const setStoryImageError = useFlowStore((s) => s.setStoryImageError);
   const removeStoryImageNode = useFlowStore((s) => s.removeStoryImageNode);
   const nodes = useFlowStore((s) => s.nodes);
   const globalSettings = useFlowStore((s) => s.globalSettings);
@@ -99,6 +102,7 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
       return;
     }
 
+    setStoryImageError({ nodeId: id, error: null });
     setStoryImageIsGenerating({ nodeId: id, isGenerating: true });
 
     try {
@@ -138,11 +142,20 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
         }),
       });
 
+      if (!response.ok) {
+        const error = await parseApiErrorResponse({ response });
+        setStoryImageError({ nodeId: id, error });
+        return;
+      }
+
       const result = await response.json();
 
       if (result.image) {
         setStoryImageGeneratedImage({ nodeId: id, image: result.image });
+        setStoryImageError({ nodeId: id, error: null });
       }
+    } catch (error: unknown) {
+      setStoryImageError({ nodeId: id, error: parseUnknownError({ error }) });
     } finally {
       setStoryImageIsGenerating({ nodeId: id, isGenerating: false });
     }
@@ -158,6 +171,7 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
     myIndex,
     globalSettings.imageModel,
     previousStoryImage?.generatedImage,
+    setStoryImageError,
     setStoryImageIsGenerating,
     setStoryImageGeneratedImage,
   ]);
@@ -275,6 +289,13 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
           rows={3}
           value={sceneDescriptionDraft.value}
         />
+
+        {data.error && (
+          <NodeErrorBanner
+            error={data.error}
+            onDismiss={() => setStoryImageError({ nodeId: id, error: null })}
+          />
+        )}
 
         {data.generatedImage && !data.isGenerating && (
           <div className="nodrag mb-3 overflow-hidden rounded">

@@ -5,9 +5,11 @@ import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { useCallback } from "react";
 import { EditableNodeLabel } from "@/components/canvas/editable-node-label";
 import { ImageOverlay } from "@/components/canvas/image-overlay";
+import { NodeErrorBanner } from "@/components/canvas/node-error-banner";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
 import { useLiveTextDraft } from "@/components/canvas/use-live-text-draft";
 import { Button } from "@/components/ui/button";
+import { parseApiErrorResponse, parseUnknownError } from "@/lib/api-error";
 import { useFlowStore } from "@/lib/store";
 import {
   getSettingDescription,
@@ -24,6 +26,7 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
   const setCharacterIsGenerating = useFlowStore(
     (s) => s.setCharacterIsGenerating
   );
+  const setCharacterError = useFlowStore((s) => s.setCharacterError);
   const removeCharacterNode = useFlowStore((s) => s.removeCharacterNode);
   const nodes = useFlowStore((s) => s.nodes);
   const globalSettings = useFlowStore((s) => s.globalSettings);
@@ -46,6 +49,7 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
       return;
     }
 
+    setCharacterError({ nodeId: id, error: null });
     setCharacterIsGenerating({ nodeId: id, isGenerating: true });
 
     try {
@@ -61,6 +65,13 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
           model,
         }),
       });
+      if (!frontalResponse.ok) {
+        const error = await parseApiErrorResponse({
+          response: frontalResponse,
+        });
+        setCharacterError({ nodeId: id, error });
+        return;
+      }
       const frontalResult = await frontalResponse.json();
       const frontalImage = frontalResult.image ?? null;
 
@@ -82,6 +93,11 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
           model,
         }),
       });
+      if (!sideResponse.ok) {
+        const error = await parseApiErrorResponse({ response: sideResponse });
+        setCharacterError({ nodeId: id, error });
+        return;
+      }
       const sideResult = await sideResponse.json();
 
       setCharacterImages({
@@ -89,6 +105,9 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
         frontalImage,
         sideImage: sideResult.image ?? null,
       });
+      setCharacterError({ nodeId: id, error: null });
+    } catch (error: unknown) {
+      setCharacterError({ nodeId: id, error: parseUnknownError({ error }) });
     } finally {
       setCharacterIsGenerating({ nodeId: id, isGenerating: false });
     }
@@ -99,6 +118,7 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
     styleDescription,
     settingDescription,
     globalSettings.imageModel,
+    setCharacterError,
     setCharacterIsGenerating,
     setCharacterImages,
   ]);
@@ -135,6 +155,13 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
           rows={3}
           value={descriptionDraft.value}
         />
+
+        {data.error && (
+          <NodeErrorBanner
+            error={data.error}
+            onDismiss={() => setCharacterError({ nodeId: id, error: null })}
+          />
+        )}
 
         {hasImages && !data.isGenerating && (
           <div className="nodrag mb-3 grid grid-cols-2 gap-2 overflow-hidden rounded">

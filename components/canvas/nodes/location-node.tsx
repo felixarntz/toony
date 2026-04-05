@@ -5,9 +5,11 @@ import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { useCallback } from "react";
 import { EditableNodeLabel } from "@/components/canvas/editable-node-label";
 import { ImageOverlay } from "@/components/canvas/image-overlay";
+import { NodeErrorBanner } from "@/components/canvas/node-error-banner";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
 import { useLiveTextDraft } from "@/components/canvas/use-live-text-draft";
 import { Button } from "@/components/ui/button";
+import { parseApiErrorResponse, parseUnknownError } from "@/lib/api-error";
 import { useFlowStore } from "@/lib/store";
 import {
   getSettingDescription,
@@ -24,6 +26,7 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
   const setLocationIsGenerating = useFlowStore(
     (s) => s.setLocationIsGenerating
   );
+  const setLocationError = useFlowStore((s) => s.setLocationError);
   const removeLocationNode = useFlowStore((s) => s.removeLocationNode);
   const nodes = useFlowStore((s) => s.nodes);
   const globalSettings = useFlowStore((s) => s.globalSettings);
@@ -45,6 +48,7 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
       return;
     }
 
+    setLocationError({ nodeId: id, error: null });
     setLocationIsGenerating({ nodeId: id, isGenerating: true });
 
     try {
@@ -59,11 +63,20 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
         }),
       });
 
+      if (!response.ok) {
+        const error = await parseApiErrorResponse({ response });
+        setLocationError({ nodeId: id, error });
+        return;
+      }
+
       const result = await response.json();
 
       if (result.image) {
         setLocationGeneratedImage({ nodeId: id, image: result.image });
+        setLocationError({ nodeId: id, error: null });
       }
+    } catch (error: unknown) {
+      setLocationError({ nodeId: id, error: parseUnknownError({ error }) });
     } finally {
       setLocationIsGenerating({ nodeId: id, isGenerating: false });
     }
@@ -74,6 +87,7 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
     styleDescription,
     settingDescription,
     globalSettings.imageModel,
+    setLocationError,
     setLocationIsGenerating,
     setLocationGeneratedImage,
   ]);
@@ -110,6 +124,13 @@ export function LocationNode({ id, data }: NodeProps<LocationNodeType>) {
           rows={3}
           value={descriptionDraft.value}
         />
+
+        {data.error && (
+          <NodeErrorBanner
+            error={data.error}
+            onDismiss={() => setLocationError({ nodeId: id, error: null })}
+          />
+        )}
 
         {data.generatedImage && !data.isGenerating && (
           <div className="nodrag mb-3 overflow-hidden rounded">

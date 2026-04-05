@@ -50,6 +50,7 @@ describe("store - location nodes", () => {
     expect(locationNodes[0].data).toEqual({
       name: "",
       description: "",
+      error: null,
       generatedImage: null,
       isGenerating: false,
     });
@@ -204,6 +205,7 @@ describe("store - character nodes", () => {
     expect(characterNodes[0].data).toEqual({
       name: "",
       description: "",
+      error: null,
       frontalImage: null,
       sideImage: null,
       isGenerating: false,
@@ -378,6 +380,7 @@ describe("store - story image nodes", () => {
       locationId: locId,
       characterIds: [],
       sceneDescription: "",
+      error: null,
       generatedImage: null,
       isGenerating: false,
     });
@@ -705,6 +708,7 @@ describe("store - movie nodes", () => {
       .nodes.filter((n) => n.type === "movie");
     expect(movieNodes).toHaveLength(1);
     expect(movieNodes[0].data).toEqual({
+      error: null,
       generatedVideoUrl: null,
       isGenerating: false,
       phase: "idle",

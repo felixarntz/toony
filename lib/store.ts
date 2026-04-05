@@ -14,6 +14,7 @@ import type {
   ComicStripNodeData,
   LocationNodeData,
   MovieNodeData,
+  NodeError,
   SettingNodeData,
   StoryImageNodeData,
   StyleNodeData,
@@ -58,6 +59,10 @@ interface FlowState {
     nodeId: string;
     description: string;
   }) => void;
+  setCharacterError: (opts: {
+    nodeId: string;
+    error: NodeError | null;
+  }) => void;
   setCharacterImages: (opts: {
     nodeId: string;
     frontalImage: string | null;
@@ -86,6 +91,7 @@ interface FlowState {
     nodeId: string;
     description: string;
   }) => void;
+  setLocationError: (opts: { nodeId: string; error: NodeError | null }) => void;
   setLocationGeneratedImage: (opts: {
     nodeId: string;
     image: string | null;
@@ -95,6 +101,7 @@ interface FlowState {
     isGenerating: boolean;
   }) => void;
   setLocationName: (opts: { nodeId: string; name: string }) => void;
+  setMovieError: (opts: { nodeId: string; error: NodeError | null }) => void;
   setMovieGeneratedVideoUrl: (opts: {
     nodeId: string;
     url: string | null;
@@ -111,6 +118,10 @@ interface FlowState {
   setStoryImageCharacterIds: (opts: {
     nodeId: string;
     characterIds: string[];
+  }) => void;
+  setStoryImageError: (opts: {
+    nodeId: string;
+    error: NodeError | null;
   }) => void;
   setStoryImageGeneratedImage: (opts: {
     nodeId: string;
@@ -481,6 +492,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       data: {
         name: "",
         description: "",
+        error: null,
         generatedImage: null,
         isGenerating: false,
       },
@@ -508,6 +520,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       data: {
         name: "",
         description: "",
+        error: null,
         frontalImage: null,
         sideImage: null,
         isGenerating: false,
@@ -543,6 +556,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         locationId: defaultLocationId,
         characterIds: [],
         sceneDescription: "",
+        error: null,
         generatedImage: null,
         isGenerating: false,
       },
@@ -568,6 +582,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       type: "movie",
       position: { x: 0, y: 0 },
       data: {
+        error: null,
         generatedVideoUrl: null,
         isGenerating: false,
         phase: "idle",
@@ -641,6 +656,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         })
       )
     ),
+  setCharacterError: ({ nodeId, error }) =>
+    set(
+      setNodesOnly(
+        updateCharacterNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, error }),
+        })
+      )
+    ),
   setCharacterName: ({ nodeId, name }) =>
     set(
       setNodesOnly(
@@ -658,6 +683,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           nodes: get().nodes,
           nodeId,
           updater: (d) => ({ ...d, generatedVideoUrl: url }),
+        })
+      )
+    ),
+  setMovieError: ({ nodeId, error }) =>
+    set(
+      setNodesOnly(
+        updateMovieNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, error }),
         })
       )
     ),
@@ -748,6 +783,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         })
       )
     ),
+  setLocationError: ({ nodeId, error }) =>
+    set(
+      setNodesOnly(
+        updateLocationNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, error }),
+        })
+      )
+    ),
   setLocationIsGenerating: ({ nodeId, isGenerating }) =>
     set(
       setNodesOnly(
@@ -805,6 +850,16 @@ export const useFlowStore = create<FlowState>((set, get) => ({
           nodes: get().nodes,
           nodeId,
           updater: (d) => ({ ...d, generatedImage: image }),
+        })
+      )
+    ),
+  setStoryImageError: ({ nodeId, error }) =>
+    set(
+      setNodesOnly(
+        updateStoryImageNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, error }),
         })
       )
     ),

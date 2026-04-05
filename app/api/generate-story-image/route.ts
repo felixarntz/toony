@@ -1,3 +1,4 @@
+import { apiErrorToResponse } from "@/lib/api-error";
 import { generateImage } from "@/lib/generate-image";
 import { buildStoryImagePrompt } from "@/lib/prompts/story-image";
 
@@ -16,29 +17,36 @@ function parseAspectRatio(opts: {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const model = (body.model as string) ?? "google/gemini-3-pro-image";
-  const aspectRatio = parseAspectRatio({ value: body.aspectRatio });
+  try {
+    const body = await request.json();
+    const model = (body.model as string) ?? "google/gemini-3-pro-image";
+    const aspectRatio = parseAspectRatio({ value: body.aspectRatio });
 
-  if (!body.sceneDescription) {
-    return Response.json(
-      { error: "Scene description is required" },
-      { status: 400 }
-    );
+    if (!body.sceneDescription) {
+      return Response.json(
+        { error: "Scene description is required" },
+        { status: 400 }
+      );
+    }
+
+    return await generateImage({
+      prompt: buildStoryImagePrompt({
+        styleDescription: (body.styleDescription as string) ?? "",
+        settingDescription: (body.settingDescription as string) ?? "",
+        locationName: (body.locationName as string) ?? "",
+        locationDescription: (body.locationDescription as string) ?? "",
+        locationImage: (body.locationImage as string) ?? "",
+        characters: (body.characters as []) ?? [],
+        sceneDescription: body.sceneDescription as string,
+        previousFrameImage: (body.previousFrameImage as string) ?? null,
+      }),
+      aspectRatio,
+      model,
+    });
+  } catch (error: unknown) {
+    return apiErrorToResponse({
+      error,
+      fallbackMessage: "Story image generation failed",
+    });
   }
-
-  return generateImage({
-    prompt: buildStoryImagePrompt({
-      styleDescription: (body.styleDescription as string) ?? "",
-      settingDescription: (body.settingDescription as string) ?? "",
-      locationName: (body.locationName as string) ?? "",
-      locationDescription: (body.locationDescription as string) ?? "",
-      locationImage: (body.locationImage as string) ?? "",
-      characters: (body.characters as []) ?? [],
-      sceneDescription: body.sceneDescription as string,
-      previousFrameImage: (body.previousFrameImage as string) ?? null,
-    }),
-    aspectRatio,
-    model,
-  });
 }

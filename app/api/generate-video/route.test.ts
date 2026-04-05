@@ -121,4 +121,52 @@ describe("POST /api/generate-video", () => {
       })
     );
   });
+
+  it("propagates provider error status code and message", async () => {
+    mockGenerateVideo.mockRejectedValueOnce(
+      Object.assign(new Error("Prompt rejected by provider"), {
+        statusCode: 422,
+      })
+    );
+
+    const request = new Request("http://localhost/api/generate-video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        storyImageData: "img",
+        sceneDescription: "scene",
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(data).toEqual({
+      error: "Prompt rejected by provider",
+      statusCode: 422,
+    });
+  });
+
+  it("defaults to status 500 when provider error has no status code", async () => {
+    mockGenerateVideo.mockRejectedValueOnce(new Error("Unexpected failure"));
+
+    const request = new Request("http://localhost/api/generate-video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        storyImageData: "img",
+        sceneDescription: "scene",
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data).toEqual({
+      error: "Unexpected failure",
+      statusCode: 500,
+    });
+  });
 });

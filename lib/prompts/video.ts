@@ -18,6 +18,7 @@ export function buildVideoPrompt({
     prompt: {
       image: storyImageData,
       text: sceneDescription,
+      //text: sceneDescription,
     },
   };
 }

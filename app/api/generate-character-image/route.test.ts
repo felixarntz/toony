@@ -82,4 +82,32 @@ describe("POST /api/generate-character-image", () => {
     expect(response.status).toBe(400);
     expect(data.error).toBe("Character description is required");
   });
+
+  it("returns normalized provider errors", async () => {
+    mockGenerateText.mockRejectedValueOnce(
+      Object.assign(new Error("Provider rejected character"), {
+        statusCode: 503,
+      })
+    );
+
+    const request = new Request(
+      "http://localhost/api/generate-character-image",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          characterDescription: "A bard",
+        }),
+      }
+    );
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(data).toEqual({
+      error: "Provider rejected character",
+      statusCode: 503,
+    });
+  });
 });

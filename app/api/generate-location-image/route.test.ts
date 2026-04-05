@@ -37,7 +37,11 @@ describe("POST /api/generate-location-image", () => {
     expect(mockGenerateText).toHaveBeenCalledWith(
       expect.objectContaining({
         model: "google/gemini-3-pro-image",
-        providerOptions: { google: { responseModalities: ["IMAGE"] } },
+        providerOptions: {
+          google: expect.objectContaining({
+            responseModalities: ["IMAGE"],
+          }),
+        },
       })
     );
   });
@@ -110,5 +114,33 @@ describe("POST /api/generate-location-image", () => {
         model: "google/gemini-3-pro-image",
       })
     );
+  });
+
+  it("returns normalized provider errors", async () => {
+    mockGenerateText.mockRejectedValueOnce(
+      Object.assign(new Error("Provider rejected location"), {
+        statusCode: 429,
+      })
+    );
+
+    const request = new Request(
+      "http://localhost/api/generate-location-image",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locationDescription: "A river",
+        }),
+      }
+    );
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(data).toEqual({
+      error: "Provider rejected location",
+      statusCode: 429,
+    });
   });
 });

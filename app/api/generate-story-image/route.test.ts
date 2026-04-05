@@ -99,7 +99,7 @@ describe("POST /api/generate-story-image", () => {
     expect(data.error).toBe("Scene description is required");
   });
 
-  it("throws when provided aspect ratio is invalid", async () => {
+  it("returns normalized error when provided aspect ratio is invalid", async () => {
     const request = new Request("http://localhost/api/generate-story-image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -109,6 +109,38 @@ describe("POST /api/generate-story-image", () => {
       }),
     });
 
-    await expect(POST(request)).rejects.toThrowError("Invalid aspect ratio");
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data).toEqual({
+      error: "Invalid aspect ratio",
+      statusCode: 500,
+    });
+  });
+
+  it("returns normalized provider errors", async () => {
+    mockGenerateText.mockRejectedValueOnce(
+      Object.assign(new Error("Provider rejected story image"), {
+        statusCode: 409,
+      })
+    );
+
+    const request = new Request("http://localhost/api/generate-story-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sceneDescription: "A scene",
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(data).toEqual({
+      error: "Provider rejected story image",
+      statusCode: 409,
+    });
   });
 });

@@ -3,9 +3,11 @@
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { Loader2, Sparkles } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { NodeErrorBanner } from "@/components/canvas/node-error-banner";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { parseApiErrorResponse, parseUnknownError } from "@/lib/api-error";
 import { useFlowStore } from "@/lib/store";
 import type { MovieNodeType, StoryImageNodeData } from "@/lib/types";
 
@@ -24,6 +26,7 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
   const setMovieGeneratedVideoUrl = useFlowStore(
     (s) => s.setMovieGeneratedVideoUrl
   );
+  const setMovieError = useFlowStore((s) => s.setMovieError);
   const setMovieIsGenerating = useFlowStore((s) => s.setMovieIsGenerating);
   const setMoviePhase = useFlowStore((s) => s.setMoviePhase);
   const nodes = useFlowStore((s) => s.nodes);
@@ -72,6 +75,7 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
       return;
     }
 
+    setMovieError({ nodeId: id, error: null });
     setMovieIsGenerating({ nodeId: id, isGenerating: true });
     setMoviePhase({ nodeId: id, phase: "generating-clips" });
 
@@ -89,7 +93,7 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
         });
 
         if (!response.ok) {
-          throw new Error(`Video generation failed for ${siNode.id}`);
+          throw await parseApiErrorResponse({ response });
         }
 
         const buffer = await response.arrayBuffer();
@@ -137,7 +141,9 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
       });
       const url = URL.createObjectURL(blob);
       setMovieGeneratedVideoUrl({ nodeId: id, url });
-    } catch {
+      setMovieError({ nodeId: id, error: null });
+    } catch (error: unknown) {
+      setMovieError({ nodeId: id, error: parseUnknownError({ error }) });
       setMovieGeneratedVideoUrl({ nodeId: id, url: null });
     } finally {
       setMovieIsGenerating({ nodeId: id, isGenerating: false });
@@ -149,6 +155,7 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
     id,
     globalSettings.videoModel,
     loadFfmpeg,
+    setMovieError,
     setMovieGeneratedVideoUrl,
     setMovieIsGenerating,
     setMoviePhase,
@@ -197,6 +204,13 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
             <Loader2 className="size-3 animate-spin" />
             Loading FFmpeg...
           </div>
+        )}
+
+        {data.error && (
+          <NodeErrorBanner
+            error={data.error}
+            onDismiss={() => setMovieError({ nodeId: id, error: null })}
+          />
         )}
 
         {!data.isGenerating && data.generatedVideoUrl && (

@@ -19,6 +19,11 @@ export const STYLE_PRESETS = [
 
 export type StylePreset = (typeof STYLE_PRESETS)[number];
 
+export interface NodeError {
+  message: string;
+  statusCode: number;
+}
+
 export interface StyleNodeData {
   customDescription: string;
   preset: StylePreset;
@@ -32,6 +37,7 @@ export interface SettingNodeData {
 
 export interface LocationNodeData {
   description: string;
+  error: NodeError | null;
   generatedImage: string | null;
   isGenerating: boolean;
   name: string;
@@ -40,6 +46,7 @@ export interface LocationNodeData {
 
 export interface CharacterNodeData {
   description: string;
+  error: NodeError | null;
   frontalImage: string | null;
   isGenerating: boolean;
   name: string;
@@ -49,6 +56,7 @@ export interface CharacterNodeData {
 
 export interface StoryImageNodeData {
   characterIds: string[];
+  error: NodeError | null;
   generatedImage: string | null;
   isGenerating: boolean;
   locationId: string | null;
@@ -61,6 +69,7 @@ export type SettingNodeType = Node<SettingNodeData, "setting">;
 export type LocationNodeType = Node<LocationNodeData, "location">;
 export type CharacterNodeType = Node<CharacterNodeData, "character">;
 export interface MovieNodeData {
+  error: NodeError | null;
   generatedVideoUrl: string | null;
   isGenerating: boolean;
   phase: "idle" | "generating-clips" | "concatenating";
