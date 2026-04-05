@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  STORY_IMAGE_LEFT_TARGET_HANDLE_ID,
+  STORY_IMAGE_RIGHT_SOURCE_HANDLE_ID,
+} from "./edge-handles";
+import {
   MAX_CHARACTER_NODES,
   MAX_COMIC_STRIP_NODES,
   MAX_LOCATION_NODES,
@@ -364,19 +368,45 @@ describe("store - story image nodes", () => {
   });
 
   it("adds a story image node when preconditions are met", () => {
-    setupCompletedLocationAndCharacter();
+    const { locId } = setupCompletedLocationAndCharacter();
     useFlowStore.getState().addStoryImageNode();
     const state = useFlowStore.getState();
     const storyNodes = state.nodes.filter((n) => n.type === "storyImage");
     expect(storyNodes).toHaveLength(1);
     expect(storyNodes[0].type).toBe("storyImage");
     expect(storyNodes[0].data).toEqual({
-      locationId: null,
+      locationId: locId,
       characterIds: [],
       sceneDescription: "",
       generatedImage: null,
       isGenerating: false,
     });
+  });
+
+  it("keeps location unset when multiple completed locations exist", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addLocationNode();
+    const secondLocation = useFlowStore
+      .getState()
+      .nodes.find(
+        (n) =>
+          n.type === "location" &&
+          (n.data as { generatedImage: string | null }).generatedImage === null
+      );
+    if (!secondLocation) {
+      throw new Error("No second location node");
+    }
+    useFlowStore.getState().setLocationGeneratedImage({
+      nodeId: secondLocation.id,
+      image: "another-location",
+    });
+
+    useFlowStore.getState().addStoryImageNode();
+    const storyNode = useFlowStore
+      .getState()
+      .nodes.find((n) => n.type === "storyImage");
+
+    expect(storyNode?.data).toHaveProperty("locationId", null);
   });
 
   it("enforces max story image constraint", () => {
@@ -467,6 +497,30 @@ describe("store - story image data updates", () => {
     const updated = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
     expect(updated?.data).toHaveProperty("generatedImage", "story-base64");
   });
+
+  it("does not recompute edges for scene-description-only changes", () => {
+    const { locId, charId } = setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const nodeId = getStoryImageNodeId();
+
+    useFlowStore.getState().setStoryImageLocationId({
+      nodeId,
+      locationId: locId,
+    });
+    useFlowStore.getState().setStoryImageCharacterIds({
+      nodeId,
+      characterIds: [charId],
+    });
+    const edgesBefore = useFlowStore.getState().edges;
+
+    useFlowStore.getState().setStoryImageSceneDescription({
+      nodeId,
+      sceneDescription: "Updated scene text",
+    });
+    const edgesAfter = useFlowStore.getState().edges;
+
+    expect(edgesAfter).toBe(edgesBefore);
+  });
 });
 
 describe("computeEdges - story image", () => {
@@ -517,6 +571,12 @@ describe("computeEdges - story image", () => {
       (e) => e.source === storyNodes[0].id && e.target === storyNodes[1].id
     );
     expect(sequentialEdge).toBeDefined();
+    expect(sequentialEdge?.sourceHandle).toBe(
+      STORY_IMAGE_RIGHT_SOURCE_HANDLE_ID
+    );
+    expect(sequentialEdge?.targetHandle).toBe(
+      STORY_IMAGE_LEFT_TARGET_HANDLE_ID
+    );
   });
 
   it("edges update when story image is removed", () => {

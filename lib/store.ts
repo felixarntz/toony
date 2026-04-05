@@ -1,6 +1,12 @@
 import type { Edge, OnNodesChange } from "@xyflow/react";
 import { applyNodeChanges, MarkerType } from "@xyflow/react";
 import { create } from "zustand";
+import {
+  STORY_IMAGE_BOTTOM_SOURCE_HANDLE_ID,
+  STORY_IMAGE_LEFT_TARGET_HANDLE_ID,
+  STORY_IMAGE_RIGHT_SOURCE_HANDLE_ID,
+  STORY_IMAGE_TOP_TARGET_HANDLE_ID,
+} from "@/lib/edge-handles";
 import { computeLayoutPositions, resolveOverlap } from "@/lib/layout";
 import type {
   AppNode,
@@ -157,6 +163,7 @@ const initialNodes: AppNode[] = applyLayoutPositions({
 });
 
 function computeEdges(nodes: AppNode[]): Edge[] {
+  const nodeById = new Map(nodes.map((n) => [n.id, n] as const));
   const nodeIds = nodes.map((n) => n.id);
   const downstreamIds = nodeIds.filter(
     (id) => id !== "style" && id !== "setting"
@@ -178,10 +185,15 @@ function computeEdges(nodes: AppNode[]): Edge[] {
       continue;
     }
     for (const targetId of downstreamIds) {
+      const targetNode = nodeById.get(targetId);
       edges.push({
         id: `${sourceId}->${targetId}`,
         source: sourceId,
         target: targetId,
+        targetHandle:
+          targetNode?.type === "storyImage"
+            ? STORY_IMAGE_TOP_TARGET_HANDLE_ID
+            : undefined,
         markerEnd,
         style: edgeStyle,
       });
@@ -198,6 +210,7 @@ function computeEdges(nodes: AppNode[]): Edge[] {
         id: `${siData.locationId}->${siNode.id}`,
         source: siData.locationId,
         target: siNode.id,
+        targetHandle: STORY_IMAGE_TOP_TARGET_HANDLE_ID,
         markerEnd: makeMarker("#f59e0b"),
         style: { stroke: "#f59e0b" },
       });
@@ -209,6 +222,7 @@ function computeEdges(nodes: AppNode[]): Edge[] {
           id: `${charId}->${siNode.id}`,
           source: charId,
           target: siNode.id,
+          targetHandle: STORY_IMAGE_TOP_TARGET_HANDLE_ID,
           markerEnd: makeMarker("#14b8a6"),
           style: { stroke: "#14b8a6" },
         });
@@ -221,6 +235,8 @@ function computeEdges(nodes: AppNode[]): Edge[] {
       id: `${storyImageNodes[i].id}->${storyImageNodes[i + 1].id}`,
       source: storyImageNodes[i].id,
       target: storyImageNodes[i + 1].id,
+      sourceHandle: STORY_IMAGE_RIGHT_SOURCE_HANDLE_ID,
+      targetHandle: STORY_IMAGE_LEFT_TARGET_HANDLE_ID,
       markerEnd: makeMarker("#a855f7"),
       style: { stroke: "#a855f7" },
     });
@@ -238,6 +254,7 @@ function computeEdges(nodes: AppNode[]): Edge[] {
         id: `${siNode.id}->${opts.targetNode.id}`,
         source: siNode.id,
         target: opts.targetNode.id,
+        sourceHandle: STORY_IMAGE_BOTTOM_SOURCE_HANDLE_ID,
         markerEnd: makeMarker(opts.color),
         style: { stroke: opts.color },
       });
@@ -352,6 +369,10 @@ function setNodesWithEdges(
   nodes: AppNode[]
 ): Pick<FlowState, "edges" | "nodes"> {
   return { nodes, edges: computeEdges(nodes) };
+}
+
+function setNodesOnly(nodes: AppNode[]): Pick<FlowState, "nodes"> {
+  return { nodes };
 }
 
 let locationCounter = 0;
@@ -506,13 +527,20 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     if (!state.canAddStoryImage()) {
       return;
     }
+    const completedLocationNodes = state.nodes.filter(
+      (n) =>
+        n.type === "location" &&
+        (n.data as LocationNodeData).generatedImage !== null
+    );
+    const defaultLocationId =
+      completedLocationNodes.length === 1 ? completedLocationNodes[0].id : null;
     storyImageCounter++;
     const newNode: AppNode = {
       id: `storyImage-${storyImageCounter}`,
       type: "storyImage",
       position: { x: 0, y: 0 },
       data: {
-        locationId: null,
+        locationId: defaultLocationId,
         characterIds: [],
         sceneDescription: "",
         generatedImage: null,
@@ -585,7 +613,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
   },
   setCharacterDescription: ({ nodeId, description }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateCharacterNode({
           nodes: get().nodes,
           nodeId,
@@ -595,7 +623,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setCharacterImages: ({ nodeId, frontalImage, sideImage }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateCharacterNode({
           nodes: get().nodes,
           nodeId,
@@ -605,7 +633,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setCharacterIsGenerating: ({ nodeId, isGenerating }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateCharacterNode({
           nodes: get().nodes,
           nodeId,
@@ -615,7 +643,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setCharacterName: ({ nodeId, name }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateCharacterNode({
           nodes: get().nodes,
           nodeId,
@@ -625,7 +653,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setMovieGeneratedVideoUrl: ({ nodeId, url }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateMovieNode({
           nodes: get().nodes,
           nodeId,
@@ -635,7 +663,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setMovieIsGenerating: ({ nodeId, isGenerating }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateMovieNode({
           nodes: get().nodes,
           nodeId,
@@ -645,7 +673,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setMoviePhase: ({ nodeId, phase }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateMovieNode({
           nodes: get().nodes,
           nodeId,
@@ -655,7 +683,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setComicStripGeneratedPngUrl: ({ nodeId, url }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateComicStripNode({
           nodes: get().nodes,
           nodeId,
@@ -665,7 +693,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setComicStripGeneratedPdfUrl: ({ nodeId, url }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateComicStripNode({
           nodes: get().nodes,
           nodeId,
@@ -675,7 +703,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setComicStripIsGenerating: ({ nodeId, isGenerating }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateComicStripNode({
           nodes: get().nodes,
           nodeId,
@@ -684,12 +712,10 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       )
     ),
   setStylePreset: ({ preset }) =>
-    set(
-      setNodesWithEdges(updateStyleNode(get().nodes, (d) => ({ ...d, preset })))
-    ),
+    set(setNodesOnly(updateStyleNode(get().nodes, (d) => ({ ...d, preset })))),
   setCustomStyleDescription: ({ description }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateStyleNode(get().nodes, (d) => ({
           ...d,
           customDescription: description,
@@ -698,13 +724,13 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setSettingDescription: ({ description }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateSettingNode(get().nodes, (d) => ({ ...d, description }))
       )
     ),
   setLocationDescription: ({ nodeId, description }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateLocationNode({
           nodes: get().nodes,
           nodeId,
@@ -714,7 +740,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setLocationGeneratedImage: ({ nodeId, image }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateLocationNode({
           nodes: get().nodes,
           nodeId,
@@ -724,7 +750,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setLocationIsGenerating: ({ nodeId, isGenerating }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateLocationNode({
           nodes: get().nodes,
           nodeId,
@@ -734,7 +760,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setLocationName: ({ nodeId, name }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateLocationNode({
           nodes: get().nodes,
           nodeId,
@@ -764,7 +790,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setStoryImageSceneDescription: ({ nodeId, sceneDescription }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateStoryImageNode({
           nodes: get().nodes,
           nodeId,
@@ -774,7 +800,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setStoryImageGeneratedImage: ({ nodeId, image }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateStoryImageNode({
           nodes: get().nodes,
           nodeId,
@@ -784,7 +810,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
     ),
   setStoryImageIsGenerating: ({ nodeId, isGenerating }) =>
     set(
-      setNodesWithEdges(
+      setNodesOnly(
         updateStoryImageNode({
           nodes: get().nodes,
           nodeId,

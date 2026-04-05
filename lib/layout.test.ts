@@ -6,13 +6,27 @@ import {
 } from "./layout";
 import type { AppNode } from "./types";
 
-function makeNode(opts: { id: string; type: string }): AppNode {
-  return {
+function makeNode(opts: {
+  id: string;
+  type: string;
+  measuredHeight?: number;
+  measuredWidth?: number;
+}): AppNode {
+  const node = {
     id: opts.id,
     type: opts.type,
     position: { x: 0, y: 0 },
     data: {},
   } as AppNode;
+
+  if (opts.measuredWidth || opts.measuredHeight) {
+    node.measured = {
+      width: opts.measuredWidth,
+      height: opts.measuredHeight,
+    };
+  }
+
+  return node;
 }
 
 function getPos(opts: {
@@ -175,7 +189,40 @@ describe("computeLayoutPositions", () => {
     const stylePos = getPos({ positions, id: "style" });
     const siPos = getPos({ positions, id: "storyImage-1" });
     expect(siPos.y).toBeGreaterThan(stylePos.y);
-    expect(siPos.y).toBe(260);
+    expect(siPos.y).toBe(272);
+  });
+
+  it("uses measured story image height to place terminal row without overlap", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({
+        id: "storyImage-1",
+        type: "storyImage",
+        measuredHeight: 680,
+      }),
+      makeNode({ id: "comic-strip-1", type: "comicStrip" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const siPos = getPos({ positions, id: "storyImage-1" });
+    const comicPos = getPos({ positions, id: "comic-strip-1" });
+    expect(comicPos.y).toBe(siPos.y + 680 + 12 + 60);
+  });
+
+  it("uses tallest measured node in location and character row", () => {
+    const nodes: AppNode[] = [
+      makeNode({ id: "style", type: "style" }),
+      makeNode({ id: "setting", type: "setting" }),
+      makeNode({ id: "location-1", type: "location", measuredHeight: 420 }),
+      makeNode({ id: "character-1", type: "character", measuredHeight: 640 }),
+      makeNode({ id: "storyImage-1", type: "storyImage" }),
+    ];
+    const positions = computeLayoutPositions({ nodes });
+
+    const row2Pos = getPos({ positions, id: "location-1" });
+    const storyPos = getPos({ positions, id: "storyImage-1" });
+    expect(storyPos.y).toBe(row2Pos.y + 640 + 12 + 60);
   });
 });
 

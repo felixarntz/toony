@@ -32,26 +32,46 @@ const ROW_ORDER: string[][] = [
 ];
 
 interface RowEntry {
-  count: number;
-  nodeType: string;
+  nodes: AppNode[];
 }
 
 function buildRowEntries(opts: { nodes: AppNode[] }): RowEntry[][] {
   return ROW_ORDER.map((typeGroup) =>
     typeGroup
-      .map((nodeType) => ({
-        nodeType,
-        count: opts.nodes.filter((n) => n.type === nodeType).length,
-      }))
-      .filter((entry) => entry.count > 0)
+      .map((nodeType) => {
+        const nodes = opts.nodes.filter((n) => n.type === nodeType);
+        return { nodes };
+      })
+      .filter((entry) => entry.nodes.length > 0)
   );
+}
+
+const ROW_HEIGHT_BUFFER = 12;
+
+function getNodeWidth(opts: { node: AppNode }): number {
+  const measuredWidth = opts.node.measured?.width;
+  if (typeof measuredWidth === "number" && measuredWidth > 0) {
+    return measuredWidth;
+  }
+  return NODE_WIDTHS[opts.node.type ?? ""] ?? 320;
+}
+
+function getNodeHeight(opts: { node: AppNode }): number {
+  const measuredHeight = opts.node.measured?.height;
+  if (typeof measuredHeight === "number" && measuredHeight > 0) {
+    return measuredHeight;
+  }
+  return NODE_HEIGHTS[opts.node.type ?? ""] ?? 300;
 }
 
 function computeRowWidth(opts: { entries: RowEntry[] }): number {
   let total = 0;
   for (const entry of opts.entries) {
-    const w = NODE_WIDTHS[entry.nodeType] ?? 320;
-    total += w * entry.count + COL_GAP * (entry.count - 1);
+    const typeWidth = entry.nodes.reduce(
+      (sum, node) => sum + getNodeWidth({ node }),
+      0
+    );
+    total += typeWidth + COL_GAP * (entry.nodes.length - 1);
   }
   if (opts.entries.length > 1) {
     total += COL_GAP * (opts.entries.length - 1);
@@ -90,14 +110,13 @@ export function computeLayoutPositions(opts: {
 
     let maxHeight = 0;
     for (const entry of entries) {
-      const w = NODE_WIDTHS[entry.nodeType] ?? 320;
-      const h = NODE_HEIGHTS[entry.nodeType] ?? 300;
-      const nodesOfType = opts.nodes.filter((n) => n.type === entry.nodeType);
-      for (const node of nodesOfType) {
+      for (const node of entry.nodes) {
+        const w = getNodeWidth({ node });
+        const h = getNodeHeight({ node });
         positions.set(node.id, { x: Math.round(x), y });
         x += w + COL_GAP;
+        maxHeight = Math.max(maxHeight, h + ROW_HEIGHT_BUFFER);
       }
-      maxHeight = Math.max(maxHeight, h);
     }
 
     y += maxHeight + ROW_GAP;

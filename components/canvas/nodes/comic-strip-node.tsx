@@ -13,7 +13,6 @@ import type { ComicStripNodeType, StoryImageNodeData } from "@/lib/types";
 const MAX_COMIC_FRAMES = 6;
 const PANELS_PER_ROW = 2;
 const PANEL_WIDTH = 900;
-const PANEL_HEIGHT = 900;
 const PANEL_BORDER_WIDTH = 16;
 const PANEL_GAP = 24;
 const CANVAS_PADDING = 28;
@@ -27,6 +26,11 @@ interface FittedRect {
   width: number;
   x: number;
   y: number;
+}
+
+interface PanelSize {
+  panelHeight: number;
+  panelWidth: number;
 }
 
 function ensureDataImageUrl(opts: { value: string }): string {
@@ -45,7 +49,7 @@ function loadImageElement(opts: { src: string }): Promise<HTMLImageElement> {
   });
 }
 
-function fitImageInPanel(opts: {
+export function fitImageInPanel(opts: {
   imageHeight: number;
   imageWidth: number;
   panelHeight: number;
@@ -53,7 +57,7 @@ function fitImageInPanel(opts: {
   panelX: number;
   panelY: number;
 }): FittedRect {
-  const scale = Math.max(
+  const scale = Math.min(
     opts.panelWidth / opts.imageWidth,
     opts.panelHeight / opts.imageHeight
   );
@@ -63,6 +67,20 @@ function fitImageInPanel(opts: {
   const y = opts.panelY + (opts.panelHeight - height) / 2;
 
   return { x, y, width, height };
+}
+
+export function getPanelSizeFromFrame(opts: {
+  imageHeight: number;
+  imageWidth: number;
+}): PanelSize {
+  const panelWidth = PANEL_WIDTH;
+  const frameAspectRatio =
+    opts.imageWidth > 0 ? opts.imageHeight / opts.imageWidth : 1;
+
+  return {
+    panelWidth,
+    panelHeight: Math.round(panelWidth * frameAspectRatio),
+  };
 }
 
 function dataUrlToUint8Array(opts: { dataUrl: string }): Uint8Array {
@@ -100,14 +118,21 @@ function downloadFromDataUrl(opts: {
 async function renderComicStripPng(opts: {
   frames: ComicImageSource[];
 }): Promise<string> {
+  const loadedFrames = await Promise.all(
+    opts.frames.map(({ src }) => loadImageElement({ src }))
+  );
+
+  const { panelWidth, panelHeight } = getPanelSizeFromFrame({
+    imageWidth: loadedFrames[0]?.width ?? 0,
+    imageHeight: loadedFrames[0]?.height ?? 0,
+  });
+
   const frameCount = opts.frames.length;
   const rows = Math.ceil(frameCount / PANELS_PER_ROW);
   const canvasWidth =
-    PANELS_PER_ROW * PANEL_WIDTH + PANEL_GAP + CANVAS_PADDING * 2;
+    PANELS_PER_ROW * panelWidth + PANEL_GAP + CANVAS_PADDING * 2;
   const canvasHeight =
-    rows * PANEL_HEIGHT +
-    Math.max(0, rows - 1) * PANEL_GAP +
-    CANVAS_PADDING * 2;
+    rows * panelHeight + Math.max(0, rows - 1) * PANEL_GAP + CANVAS_PADDING * 2;
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasWidth;
@@ -121,30 +146,26 @@ async function renderComicStripPng(opts: {
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvasWidth, canvasHeight);
 
-  const loadedFrames = await Promise.all(
-    opts.frames.map(({ src }) => loadImageElement({ src }))
-  );
-
   for (const [index, image] of loadedFrames.entries()) {
     const row = Math.floor(index / PANELS_PER_ROW);
     const col = index % PANELS_PER_ROW;
 
-    const panelX = CANVAS_PADDING + col * (PANEL_WIDTH + PANEL_GAP);
-    const panelY = CANVAS_PADDING + row * (PANEL_HEIGHT + PANEL_GAP);
+    const panelX = CANVAS_PADDING + col * (panelWidth + PANEL_GAP);
+    const panelY = CANVAS_PADDING + row * (panelHeight + PANEL_GAP);
 
     context.fillStyle = "#ffffff";
-    context.fillRect(panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT);
+    context.fillRect(panelX, panelY, panelWidth, panelHeight);
 
     context.save();
     context.beginPath();
-    context.rect(panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT);
+    context.rect(panelX, panelY, panelWidth, panelHeight);
     context.clip();
 
     const fitted = fitImageInPanel({
       imageHeight: image.height,
       imageWidth: image.width,
-      panelHeight: PANEL_HEIGHT,
-      panelWidth: PANEL_WIDTH,
+      panelHeight,
+      panelWidth,
       panelX,
       panelY,
     });
@@ -153,7 +174,7 @@ async function renderComicStripPng(opts: {
 
     context.lineWidth = PANEL_BORDER_WIDTH;
     context.strokeStyle = "#000000";
-    context.strokeRect(panelX, panelY, PANEL_WIDTH, PANEL_HEIGHT);
+    context.strokeRect(panelX, panelY, panelWidth, panelHeight);
   }
 
   return canvas.toDataURL("image/png");

@@ -5,6 +5,7 @@ import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { useCallback } from "react";
 import { ImageOverlay } from "@/components/canvas/image-overlay";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
+import { useLiveTextDraft } from "@/components/canvas/use-live-text-draft";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -14,6 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  STORY_IMAGE_BOTTOM_SOURCE_HANDLE_ID,
+  STORY_IMAGE_LEFT_TARGET_HANDLE_ID,
+  STORY_IMAGE_RIGHT_SOURCE_HANDLE_ID,
+  STORY_IMAGE_TOP_TARGET_HANDLE_ID,
+} from "@/lib/edge-handles";
 import { useFlowStore } from "@/lib/store";
 import {
   getSettingDescription,
@@ -69,6 +76,14 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
 
   const styleDescription = getStyleDescription({ nodes });
   const settingDescription = getSettingDescription({ nodes });
+  const sceneDescriptionDraft = useLiveTextDraft({
+    value: data.sceneDescription,
+    onChange: (sceneDescription) =>
+      setStoryImageSceneDescription({
+        nodeId: id,
+        sceneDescription,
+      }),
+  });
 
   const canGenerate =
     data.sceneDescription.trim().length > 0 &&
@@ -158,7 +173,14 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
   return (
     <div className="relative w-96 overflow-hidden rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)]">
       <Handle
+        id={STORY_IMAGE_TOP_TARGET_HANDLE_ID}
         position={Position.Top}
+        style={{ background: "var(--node-story-image)" }}
+        type="target"
+      />
+      <Handle
+        id={STORY_IMAGE_LEFT_TARGET_HANDLE_ID}
+        position={Position.Left}
         style={{ background: "var(--node-story-image)" }}
         type="target"
       />
@@ -243,15 +265,12 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
         <textarea
           className="nodrag mb-3 w-full resize-y rounded-md border border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 py-1.5 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none"
           id={`story-desc-${id}`}
-          onChange={(e) =>
-            setStoryImageSceneDescription({
-              nodeId: id,
-              sceneDescription: e.target.value,
-            })
-          }
+          onBlur={sceneDescriptionDraft.onBlur}
+          onChange={(e) => sceneDescriptionDraft.onChange(e.target.value)}
+          onFocus={sceneDescriptionDraft.onFocus}
           placeholder="Describe what happens in this scene..."
           rows={3}
-          value={data.sceneDescription}
+          value={sceneDescriptionDraft.value}
         />
 
         {data.generatedImage && !data.isGenerating && (
@@ -293,7 +312,14 @@ export function StoryImageNode({ id, data }: NodeProps<StoryImageNodeType>) {
         </div>
       </div>
       <Handle
+        id={STORY_IMAGE_BOTTOM_SOURCE_HANDLE_ID}
         position={Position.Bottom}
+        style={{ background: "var(--node-story-image)" }}
+        type="source"
+      />
+      <Handle
+        id={STORY_IMAGE_RIGHT_SOURCE_HANDLE_ID}
+        position={Position.Right}
         style={{ background: "var(--node-story-image)" }}
         type="source"
       />

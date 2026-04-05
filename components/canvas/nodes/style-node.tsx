@@ -1,6 +1,7 @@
 "use client";
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
+import { useLiveTextDraft } from "@/components/canvas/use-live-text-draft";
 import { STYLE_PRESET_LABELS } from "@/lib/constants";
 import { useFlowStore } from "@/lib/store";
 import { STYLE_PRESETS, type StyleNodeType } from "@/lib/types";
@@ -10,6 +11,10 @@ export function StyleNode({ data }: NodeProps<StyleNodeType>) {
   const setCustomStyleDescription = useFlowStore(
     (s) => s.setCustomStyleDescription
   );
+  const customStyleDraft = useLiveTextDraft({
+    value: data.customDescription,
+    onChange: (description) => setCustomStyleDescription({ description }),
+  });
 
   return (
     <div className="w-72 overflow-hidden rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)]">
@@ -54,12 +59,12 @@ export function StyleNode({ data }: NodeProps<StyleNodeType>) {
             <textarea
               className="nodrag w-full resize-y rounded-md border border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 py-1.5 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none"
               id="style-custom"
-              onChange={(e) =>
-                setCustomStyleDescription({ description: e.target.value })
-              }
+              onBlur={customStyleDraft.onBlur}
+              onChange={(e) => customStyleDraft.onChange(e.target.value)}
+              onFocus={customStyleDraft.onFocus}
               placeholder="Describe your visual style..."
               rows={3}
-              value={data.customDescription}
+              value={customStyleDraft.value}
             />
           </>
         )}

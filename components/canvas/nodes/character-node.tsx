@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import { EditableNodeLabel } from "@/components/canvas/editable-node-label";
 import { ImageOverlay } from "@/components/canvas/image-overlay";
 import { RemoveNodeButton } from "@/components/canvas/remove-node-button";
+import { useLiveTextDraft } from "@/components/canvas/use-live-text-draft";
 import { Button } from "@/components/ui/button";
 import { useFlowStore } from "@/lib/store";
 import {
@@ -29,6 +30,11 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
 
   const styleDescription = getStyleDescription({ nodes });
   const settingDescription = getSettingDescription({ nodes });
+  const descriptionDraft = useLiveTextDraft({
+    value: data.description,
+    onChange: (description) =>
+      setCharacterDescription({ nodeId: id, description }),
+  });
   const hasDescription = data.description.trim().length > 0;
   const hasParentData =
     styleDescription.trim().length > 0 && settingDescription.trim().length > 0;
@@ -122,12 +128,12 @@ export function CharacterNode({ id, data }: NodeProps<CharacterNodeType>) {
         <textarea
           className="nodrag mb-3 w-full resize-y rounded-md border border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 py-1.5 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none"
           id={`character-desc-${id}`}
-          onChange={(e) =>
-            setCharacterDescription({ nodeId: id, description: e.target.value })
-          }
+          onBlur={descriptionDraft.onBlur}
+          onChange={(e) => descriptionDraft.onChange(e.target.value)}
+          onFocus={descriptionDraft.onFocus}
           placeholder="Describe a character for the story..."
           rows={3}
-          value={data.description}
+          value={descriptionDraft.value}
         />
 
         {hasImages && !data.isGenerating && (
