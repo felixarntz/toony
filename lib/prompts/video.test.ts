@@ -22,6 +22,11 @@ describe("buildVideoPrompt", () => {
       sceneDescription: "A quiet scene",
     });
 
+    expect(typeof result.prompt).not.toBe("string");
+    if (typeof result.prompt === "string") {
+      throw new Error("Expected object prompt");
+    }
+
     expect(result.prompt.image).toBe("abc123xyz");
   });
 
@@ -30,6 +35,11 @@ describe("buildVideoPrompt", () => {
       storyImageData: "img",
       sceneDescription: "Dramatic battle unfolds",
     });
+
+    expect(typeof result.prompt).not.toBe("string");
+    if (typeof result.prompt === "string") {
+      throw new Error("Expected object prompt");
+    }
 
     expect(result.prompt.text).toBe("Dramatic battle unfolds");
   });

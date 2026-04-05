@@ -1,26 +1,24 @@
+import type { GenerateVideoPrompt } from "ai";
+
 interface VideoPromptInput {
   sceneDescription: string;
   storyImageData: string;
 }
 
-interface VideoPromptOutput {
-  prompt: {
-    image: string;
-    text: string;
-  };
+interface VideoPrompt {
+  prompt: GenerateVideoPrompt;
 }
 
 export function buildVideoPrompt({
   storyImageData,
   sceneDescription,
-}: VideoPromptInput): VideoPromptOutput {
+}: VideoPromptInput): VideoPrompt {
   return {
     prompt: {
       image: storyImageData,
       text: sceneDescription,
-      //text: sceneDescription,
     },
   };
 }
 
-export type { VideoPromptInput, VideoPromptOutput };
+export type { VideoPrompt, VideoPromptInput };

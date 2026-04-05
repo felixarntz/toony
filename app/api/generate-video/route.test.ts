@@ -1,20 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("ai", () => ({
-  experimental_generateVideo: vi.fn(),
+vi.mock("@/lib/generate-video", () => ({
+  generateVideo: vi.fn(),
 }));
 
-import { experimental_generateVideo } from "ai";
+import { generateVideo } from "@/lib/generate-video";
 import { POST } from "./route";
 
-const mockGenerateVideo = vi.mocked(experimental_generateVideo);
+const mockGenerateVideo = vi.mocked(generateVideo);
 
 describe("POST /api/generate-video", () => {
   it("returns video binary on success", async () => {
-    const videoData = new Uint8Array([1, 2, 3, 4]);
-    mockGenerateVideo.mockResolvedValueOnce({
-      video: { uint8Array: videoData, mediaType: "video/mp4" },
-    } as never);
+    const responseBody = new Uint8Array([1, 2, 3, 4]);
+    mockGenerateVideo.mockResolvedValueOnce(
+      new Response(responseBody.buffer as ArrayBuffer, {
+        headers: { "Content-Type": "video/mp4" },
+      })
+    );
 
     const request = new Request("http://localhost/api/generate-video", {
       method: "POST",
@@ -32,7 +34,7 @@ describe("POST /api/generate-video", () => {
     expect(response.headers.get("Content-Type")).toBe("video/mp4");
 
     const buffer = await response.arrayBuffer();
-    expect(new Uint8Array(buffer)).toEqual(videoData);
+    expect(new Uint8Array(buffer)).toEqual(responseBody);
 
     expect(mockGenerateVideo).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -78,9 +80,9 @@ describe("POST /api/generate-video", () => {
   });
 
   it("returns 500 when no video is generated", async () => {
-    mockGenerateVideo.mockResolvedValueOnce({
-      video: { uint8Array: null, mediaType: null },
-    } as never);
+    mockGenerateVideo.mockResolvedValueOnce(
+      Response.json({ error: "No video was generated" }, { status: 500 })
+    );
 
     const request = new Request("http://localhost/api/generate-video", {
       method: "POST",
@@ -99,10 +101,11 @@ describe("POST /api/generate-video", () => {
   });
 
   it("uses default model when none specified", async () => {
-    const videoData = new Uint8Array([5, 6]);
-    mockGenerateVideo.mockResolvedValueOnce({
-      video: { uint8Array: videoData, mediaType: "video/mp4" },
-    } as never);
+    mockGenerateVideo.mockResolvedValueOnce(
+      new Response(new Uint8Array([5, 6]).buffer as ArrayBuffer, {
+        headers: { "Content-Type": "video/mp4" },
+      })
+    );
 
     const request = new Request("http://localhost/api/generate-video", {
       method: "POST",
