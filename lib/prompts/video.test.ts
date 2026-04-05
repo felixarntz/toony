@@ -8,12 +8,18 @@ describe("buildVideoPrompt", () => {
       sceneDescription: "The hero runs through the forest",
     });
 
-    expect(result).toEqual({
-      prompt: {
-        image: "base64imagedata",
-        text: "The hero runs through the forest",
-      },
-    });
+    expect(typeof result.prompt).not.toBe("string");
+    if (typeof result.prompt === "string") {
+      throw new Error("Expected object prompt");
+    }
+
+    expect(result.prompt.image).toBe("base64imagedata");
+    expect(result.prompt.text).toContain(
+      "Generate a video based on the image."
+    );
+    expect(result.prompt.text).toContain(
+      "For context, here is the original scene description used to generate the image: The hero runs through the forest"
+    );
   });
 
   it("passes through image data unchanged", () => {
@@ -30,7 +36,7 @@ describe("buildVideoPrompt", () => {
     expect(result.prompt.image).toBe("abc123xyz");
   });
 
-  it("passes through scene description unchanged", () => {
+  it("includes scene description in video instructions", () => {
     const result = buildVideoPrompt({
       storyImageData: "img",
       sceneDescription: "Dramatic battle unfolds",
@@ -41,6 +47,8 @@ describe("buildVideoPrompt", () => {
       throw new Error("Expected object prompt");
     }
 
-    expect(result.prompt.text).toBe("Dramatic battle unfolds");
+    expect(result.prompt.text).toContain(
+      "For context, here is the original scene description used to generate the image: Dramatic battle unfolds"
+    );
   });
 });

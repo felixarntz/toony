@@ -5,6 +5,7 @@ vi.mock("@/lib/generate-video", () => ({
 }));
 
 import { generateVideo } from "@/lib/generate-video";
+import { buildVideoPrompt } from "@/lib/prompts/video";
 import { POST } from "./route";
 
 const mockGenerateVideo = vi.mocked(generateVideo);
@@ -36,15 +37,14 @@ describe("POST /api/generate-video", () => {
     const buffer = await response.arrayBuffer();
     expect(new Uint8Array(buffer)).toEqual(responseBody);
 
-    expect(mockGenerateVideo).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: "google/veo-3.1-generate-001",
-        prompt: {
-          image: "base64img",
-          text: "A walk through the city",
-        },
-      })
-    );
+    const { prompt } = buildVideoPrompt({
+      storyImageData: "base64img",
+      sceneDescription: "A walk through the city",
+    });
+    expect(mockGenerateVideo).toHaveBeenCalledWith({
+      model: "google/veo-3.1-generate-001",
+      prompt,
+    });
   });
 
   it("returns 400 when storyImageData is missing", async () => {

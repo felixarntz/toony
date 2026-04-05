@@ -8,6 +8,7 @@ export async function generateVideo(opts: {
   const result = await generateVideoWithModel({
     model: opts.model,
     prompt: opts.prompt,
+    aspectRatio: "16:9",
   });
 
   if (!result.video?.uint8Array) {
