@@ -16,8 +16,8 @@ beforeEach(() => {
 });
 
 describe("serializeProject / deserializeProject round-trip", () => {
-  it("round-trips the initial state", () => {
-    const json = serializeProject();
+  it("round-trips the initial state", async () => {
+    const json = await serializeProject();
     const parsed = JSON.parse(json);
     expect(parsed.version).toBe(1);
     expect(parsed.nodes).toEqual(useFlowStore.getState().nodes);
@@ -31,7 +31,7 @@ describe("serializeProject / deserializeProject round-trip", () => {
     expect(state.globalSettings).toEqual(parsed.globalSettings);
   });
 
-  it("round-trips a populated state with all node types", () => {
+  it("round-trips a populated state with all node types", async () => {
     const store = useFlowStore.getState();
     store.setStylePreset({ preset: "pixar-3d" });
     store.setSettingDescription({ description: "A fantasy world" });
@@ -102,7 +102,7 @@ describe("serializeProject / deserializeProject round-trip", () => {
       url: "data:application/pdf;base64,BAUG",
     });
 
-    const beforeJson = serializeProject();
+    const beforeJson = await serializeProject();
     const beforeState = useFlowStore.getState();
 
     useFlowStore.setState(useFlowStore.getInitialState());
@@ -114,6 +114,24 @@ describe("serializeProject / deserializeProject round-trip", () => {
     expect(afterState.nodes).toEqual(beforeState.nodes);
     expect(afterState.globalSettings).toEqual(beforeState.globalSettings);
     expect(afterState.edges).toEqual(computeEdges(afterState.nodes));
+  });
+
+  it("serializes movie blob urls to data urls", async () => {
+    setupMovieNodeWithGeneratedBlobVideo();
+
+    const json = await serializeProject();
+    const parsed = JSON.parse(json) as {
+      nodes: Array<{
+        type: string;
+        data: { generatedVideoUrl?: string | null };
+      }>;
+    };
+    const movieNode = parsed.nodes.find((node) => node.type === "movie");
+
+    expect(movieNode).toBeDefined();
+    expect(movieNode?.data.generatedVideoUrl?.startsWith("data:video/")).toBe(
+      true
+    );
   });
 
   it("rejects invalid version", () => {
@@ -134,6 +152,62 @@ describe("serializeProject / deserializeProject round-trip", () => {
     );
   });
 });
+
+function setupMovieNodeWithGeneratedBlobVideo() {
+  useFlowStore.getState().addLocationNode();
+  const locationNode = useFlowStore
+    .getState()
+    .nodes.find((node) => node.type === "location");
+  if (!locationNode) {
+    throw new Error("No location node");
+  }
+  useFlowStore.getState().setLocationGeneratedImage({
+    nodeId: locationNode.id,
+    image: "data:image/png;base64,AQID",
+  });
+
+  useFlowStore.getState().addCharacterNode();
+  const characterNode = useFlowStore
+    .getState()
+    .nodes.find((node) => node.type === "character");
+  if (!characterNode) {
+    throw new Error("No character node");
+  }
+  useFlowStore.getState().setCharacterImages({
+    nodeId: characterNode.id,
+    frontalImage: "data:image/png;base64,AQID",
+    sideImage: "data:image/png;base64,BAUG",
+  });
+
+  useFlowStore.getState().addStoryImageNode();
+  const storyNode = useFlowStore
+    .getState()
+    .nodes.find((node) => node.type === "storyImage");
+  if (!storyNode) {
+    throw new Error("No story image node");
+  }
+  useFlowStore.getState().setStoryImageGeneratedImage({
+    nodeId: storyNode.id,
+    image: "data:image/png;base64,AQID",
+  });
+
+  useFlowStore.getState().addMovieNode();
+  const movieNode = useFlowStore
+    .getState()
+    .nodes.find((node) => node.type === "movie");
+  if (!movieNode) {
+    throw new Error("No movie node");
+  }
+
+  const movieBlob = new Blob([new Uint8Array([1, 2, 3, 4])], {
+    type: "video/mp4",
+  });
+  const movieBlobUrl = URL.createObjectURL(movieBlob);
+  useFlowStore.getState().setMovieGeneratedVideoUrl({
+    nodeId: movieNode.id,
+    url: movieBlobUrl,
+  });
+}
 
 describe("collectAssets", () => {
   it("returns empty array for initial state", () => {

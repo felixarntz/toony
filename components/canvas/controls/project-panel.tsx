@@ -19,8 +19,8 @@ export function ProjectPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nodes = useFlowStore((s) => s.nodes);
 
-  const handleExportProject = () => {
-    const json = serializeProject();
+  const handleExportProject = async () => {
+    const json = await serializeProject();
     downloadJson({ content: json, filename: "toony-project.json" });
   };
 

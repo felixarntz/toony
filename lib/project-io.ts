@@ -11,11 +11,61 @@ interface ProjectData {
   version: 1;
 }
 
-export function serializeProject(): string {
+function arrayBufferToBase64(opts: { arrayBuffer: ArrayBuffer }): string {
+  const bytes = new Uint8Array(opts.arrayBuffer);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+async function blobToDataUrl({ blob }: { blob: Blob }): Promise<string> {
+  const arrayBuffer = await blob.arrayBuffer();
+  const base64 = arrayBufferToBase64({ arrayBuffer });
+  const mediaType = blob.type || "application/octet-stream";
+  return `data:${mediaType};base64,${base64}`;
+}
+
+async function toSerializableNode({
+  node,
+}: {
+  node: AppNode;
+}): Promise<AppNode> {
+  if (node.type !== "movie") {
+    return node;
+  }
+
+  const videoUrl = node.data.generatedVideoUrl;
+  if (!videoUrl?.startsWith("blob:")) {
+    return node;
+  }
+
+  const response = await fetch(videoUrl);
+  if (!response.ok) {
+    return node;
+  }
+
+  const videoBlob = await response.blob();
+  const dataUrl = await blobToDataUrl({ blob: videoBlob });
+
+  return {
+    ...node,
+    data: {
+      ...node.data,
+      generatedVideoUrl: dataUrl,
+    },
+  };
+}
+
+export async function serializeProject(): Promise<string> {
   const { nodes, globalSettings } = useFlowStore.getState();
+  const serializableNodes = await Promise.all(
+    nodes.map(async (node) => await toSerializableNode({ node }))
+  );
   const data: ProjectData = {
     version: 1,
-    nodes,
+    nodes: serializableNodes,
     globalSettings,
   };
   return JSON.stringify(data, null, 2);
