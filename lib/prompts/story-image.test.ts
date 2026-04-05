@@ -42,10 +42,19 @@ describe("buildStoryImagePrompt", () => {
     expect(textPart.text).toContain(
       "Scene location: Abandoned Station — A crumbling train station overgrown with vines"
     );
-    expect(textPart.text).toContain(
-      "Characters in this scene: Hana — A young girl with red hair"
+    const characterSummaryPart = messages[0].content[2] as TextPart;
+    expect(characterSummaryPart.type).toBe("text");
+    expect(characterSummaryPart.text).toContain(
+      "There is 1 character in this scene:"
     );
-    expect(textPart.text).toContain(
+    const characterPart = messages[0].content[3] as TextPart;
+    expect(characterPart.type).toBe("text");
+    expect(characterPart.text).toContain(
+      "Character: Hana — A young girl with red hair"
+    );
+    const actionPart = messages[0].content[6] as TextPart;
+    expect(actionPart.type).toBe("text");
+    expect(actionPart.text).toContain(
       "Scene action: Hana walks through the station"
     );
   });
@@ -63,11 +72,11 @@ describe("buildStoryImagePrompt", () => {
     const result = buildStoryImagePrompt(baseInput);
     const messages = result.messages as NonNullable<typeof result.messages>;
 
-    const frontalPart = messages[0].content[2] as ImagePart;
+    const frontalPart = messages[0].content[4] as ImagePart;
     expect(frontalPart.type).toBe("image");
     expect(frontalPart.image).toBe("hana-frontal-base64");
 
-    const sidePart = messages[0].content[3] as ImagePart;
+    const sidePart = messages[0].content[5] as ImagePart;
     expect(sidePart.type).toBe("image");
     expect(sidePart.image).toBe("hana-side-base64");
   });
@@ -93,28 +102,26 @@ describe("buildStoryImagePrompt", () => {
 
     const content = (result.messages as NonNullable<typeof result.messages>)[0]
       .content;
-    expect(content).toHaveLength(6);
+    expect(content).toHaveLength(10);
     expect((content[0] as TextPart).type).toBe("text");
     expect((content[1] as ImagePart).type).toBe("image");
-    expect((content[2] as ImagePart).image).toBe("hana-frontal");
-    expect((content[3] as ImagePart).image).toBe("hana-side");
-    expect((content[4] as ImagePart).image).toBe("kenji-frontal");
-    expect((content[5] as ImagePart).image).toBe("kenji-side");
+    expect((content[4] as ImagePart).image).toBe("hana-frontal");
+    expect((content[5] as ImagePart).image).toBe("hana-side");
+    expect((content[7] as ImagePart).image).toBe("kenji-frontal");
+    expect((content[8] as ImagePart).image).toBe("kenji-side");
 
-    const textPart = content[0] as TextPart;
-    expect(textPart.text).toContain(
-      "Hana — A young girl with red hair; Kenji — A tall warrior"
-    );
+    const textPart = content[2] as TextPart;
+    expect(textPart.text).toContain("There are 2 characters in this scene:");
   });
 
   it("does not include previous frame text or image when not provided", () => {
     const result = buildStoryImagePrompt(baseInput);
     const messages = result.messages as NonNullable<typeof result.messages>;
 
-    const textPart = messages[0].content[0] as TextPart;
+    const textPart = messages[0].content[6] as TextPart;
     expect(textPart.text).not.toContain("previous frame");
 
-    expect(messages[0].content).toHaveLength(4);
+    expect(messages[0].content).toHaveLength(7);
   });
 
   it("includes previous frame image and continuity text when provided", () => {
@@ -124,15 +131,15 @@ describe("buildStoryImagePrompt", () => {
     });
 
     const messages = result.messages as NonNullable<typeof result.messages>;
-    const textPart = messages[0].content[0] as TextPart;
+    const textPart = messages[0].content[7] as TextPart;
     expect(textPart.text).toContain(
       "This scene follows directly from the previous frame. Maintain visual continuity."
     );
 
     const content = messages[0].content;
-    expect(content).toHaveLength(5);
+    expect(content).toHaveLength(9);
 
-    const lastPart = content[4] as ImagePart;
+    const lastPart = content[8] as ImagePart;
     expect(lastPart.type).toBe("image");
     expect(lastPart.image).toBe("prev-frame-base64");
   });
