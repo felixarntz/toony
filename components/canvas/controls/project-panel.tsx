@@ -44,16 +44,16 @@ export function ProjectPanel() {
     event.target.value = "";
   };
 
-  const handleExportAssets = () => {
-    const assets = collectAssets({ nodes });
-    if (assets.length === 0) {
+  const handleExportImages = () => {
+    const images = collectAssets({ nodes });
+    if (images.length === 0) {
       return;
     }
-    const blob = buildZipBlob({ assets });
-    downloadBlob({ blob, filename: "toony-assets.zip" });
+    const blob = buildZipBlob({ assets: images });
+    downloadBlob({ blob, filename: "toony-images.zip" });
   };
 
-  const hasAssets = nodes.some((n) => {
+  const hasImages = nodes.some((n) => {
     if (n.type === "location" && n.data.generatedImage) {
       return true;
     }
@@ -61,15 +61,6 @@ export function ProjectPanel() {
       return true;
     }
     if (n.type === "storyImage" && n.data.generatedImage) {
-      return true;
-    }
-    if (n.type === "movie" && n.data.generatedVideoUrl) {
-      return true;
-    }
-    if (
-      n.type === "comicStrip" &&
-      (n.data.generatedPngUrl || n.data.generatedPdfUrl)
-    ) {
       return true;
     }
     return false;
@@ -119,18 +110,18 @@ export function ProjectPanel() {
               </Button>
               <Button
                 className="nodrag h-8 w-full justify-start rounded-lg border-[var(--node-input-border)] bg-[var(--node-input-bg)] px-2.5 text-foreground text-xs hover:bg-[var(--node-input-bg)]"
-                disabled={!hasAssets}
-                onClick={handleExportAssets}
+                disabled={!hasImages}
+                onClick={handleExportImages}
                 size="default"
                 title={
-                  hasAssets
-                    ? "Export all generated assets as ZIP"
-                    : "No generated assets to export"
+                  hasImages
+                    ? "Export generated images as ZIP"
+                    : "No generated images to export"
                 }
                 variant="ghost"
               >
                 <Package className="size-3.5 shrink-0 text-muted-foreground" />
-                Export Assets
+                Export Images
               </Button>
             </div>
           </div>

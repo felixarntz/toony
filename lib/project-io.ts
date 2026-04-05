@@ -150,117 +150,122 @@ function imageAssetEntry({
   };
 }
 
-function collectStoryImageAssets(opts: {
-  generatedImage: string | null;
-  generatedImage16x9: string | null;
-  nodeId: string;
-}): AssetEntry[] {
-  if (!(opts.generatedImage || opts.generatedImage16x9)) {
-    return [];
-  }
-
-  const entries: AssetEntry[] = [];
-  if (opts.generatedImage) {
-    entries.push(
-      imageAssetEntry({
-        dataUrl: opts.generatedImage,
-        path: `story-frames/${opts.nodeId}`,
-      })
-    );
-  }
-  if (opts.generatedImage16x9) {
-    entries.push(
-      imageAssetEntry({
-        dataUrl: opts.generatedImage16x9,
-        path: `story-frames-16x9/${opts.nodeId}`,
-      })
-    );
-  }
-  return entries;
+function normalizeNameToHyphenCase({ value }: { value: string }): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-function collectNodeAssets({ node }: { node: AppNode }): AssetEntry[] {
-  switch (node.type) {
-    case "location":
-      if (node.data.generatedImage) {
-        return [
-          imageAssetEntry({
-            dataUrl: node.data.generatedImage,
-            path: `locations/${node.id}`,
-          }),
-        ];
-      }
-      return [];
-    case "character": {
-      const entries: AssetEntry[] = [];
-      if (node.data.frontalImage) {
-        entries.push(
-          imageAssetEntry({
-            dataUrl: node.data.frontalImage,
-            path: `characters/${node.id}-front`,
-          })
-        );
-      }
-      if (node.data.sideImage) {
-        entries.push(
-          imageAssetEntry({
-            dataUrl: node.data.sideImage,
-            path: `characters/${node.id}-side`,
-          })
-        );
-      }
-      return entries;
-    }
-    case "storyImage":
-      return collectStoryImageAssets({
-        generatedImage: node.data.generatedImage,
-        generatedImage16x9: node.data.generatedImage16x9,
-        nodeId: node.id,
-      });
-    case "movie":
-      if (node.data.generatedVideoUrl?.startsWith("data:")) {
-        const raw = stripDataUrlPrefix({
-          dataUrl: node.data.generatedVideoUrl,
-        });
-        return [
-          {
-            path: "movie/movie.mp4",
-            data: base64ToUint8Array({ base64: raw }),
-          },
-        ];
-      }
-      return [];
-    case "comicStrip": {
-      const entries: AssetEntry[] = [];
-      if (node.data.generatedPngUrl?.startsWith("data:image/")) {
-        entries.push(
-          imageAssetEntry({
-            dataUrl: node.data.generatedPngUrl,
-            path: "comic-strip/comic-strip",
-          })
-        );
-      }
-      if (node.data.generatedPdfUrl?.startsWith("data:application/pdf")) {
-        const raw = stripDataUrlPrefix({
-          dataUrl: node.data.generatedPdfUrl,
-        });
-        entries.push({
-          path: "comic-strip/comic-strip.pdf",
-          data: base64ToUint8Array({ base64: raw }),
-        });
-      }
-      return entries;
-    }
-    default:
-      return [];
+function ensureUniqueFilePath(opts: {
+  path: string;
+  usedPaths: Set<string>;
+}): string {
+  if (!opts.usedPaths.has(opts.path)) {
+    opts.usedPaths.add(opts.path);
+    return opts.path;
   }
+
+  const extensionIndex = opts.path.lastIndexOf(".");
+  const hasExtension = extensionIndex > 0;
+  const basePath = hasExtension
+    ? opts.path.slice(0, extensionIndex)
+    : opts.path;
+  const extension = hasExtension ? opts.path.slice(extensionIndex) : "";
+
+  let index = 2;
+  while (true) {
+    const nextPath = `${basePath}-${index}${extension}`;
+    if (!opts.usedPaths.has(nextPath)) {
+      opts.usedPaths.add(nextPath);
+      return nextPath;
+    }
+    index += 1;
+  }
+}
+
+function stripFileExtension({ path }: { path: string }): string {
+  const extensionIndex = path.lastIndexOf(".");
+  if (extensionIndex === -1) {
+    return path;
+  }
+  return path.slice(0, extensionIndex);
 }
 
 export function collectAssets({ nodes }: { nodes: AppNode[] }): AssetEntry[] {
   const assets: AssetEntry[] = [];
-  for (const node of nodes) {
-    assets.push(...collectNodeAssets({ node }));
+  const usedPaths = new Set<string>();
+
+  const locationNodes = nodes.filter((node) => node.type === "location");
+  for (const node of locationNodes) {
+    if (!node.data.generatedImage) {
+      continue;
+    }
+    const normalized = normalizeNameToHyphenCase({ value: node.data.name });
+    const baseName = normalized || "location";
+    const path = ensureUniqueFilePath({
+      path: `locations/${baseName}.${getImageExtension({ dataUrl: node.data.generatedImage })}`,
+      usedPaths,
+    });
+    assets.push(
+      imageAssetEntry({
+        dataUrl: node.data.generatedImage,
+        path: stripFileExtension({ path }),
+      })
+    );
   }
+
+  const characterNodes = nodes.filter((node) => node.type === "character");
+  for (const node of characterNodes) {
+    const normalized = normalizeNameToHyphenCase({ value: node.data.name });
+    const baseName = normalized || "character";
+
+    if (node.data.frontalImage) {
+      const path = ensureUniqueFilePath({
+        path: `characters/${baseName}-front.${getImageExtension({ dataUrl: node.data.frontalImage })}`,
+        usedPaths,
+      });
+      assets.push(
+        imageAssetEntry({
+          dataUrl: node.data.frontalImage,
+          path: stripFileExtension({ path }),
+        })
+      );
+    }
+
+    if (node.data.sideImage) {
+      const path = ensureUniqueFilePath({
+        path: `characters/${baseName}-side.${getImageExtension({ dataUrl: node.data.sideImage })}`,
+        usedPaths,
+      });
+      assets.push(
+        imageAssetEntry({
+          dataUrl: node.data.sideImage,
+          path: stripFileExtension({ path }),
+        })
+      );
+    }
+  }
+
+  const storyImageNodes = nodes.filter((node) => node.type === "storyImage");
+  for (const [index, node] of storyImageNodes.entries()) {
+    if (!node.data.generatedImage) {
+      continue;
+    }
+    const storyNumber = String(index + 1).padStart(2, "0");
+    const path = ensureUniqueFilePath({
+      path: `story-frames/${storyNumber}.${getImageExtension({ dataUrl: node.data.generatedImage })}`,
+      usedPaths,
+    });
+    assets.push(
+      imageAssetEntry({
+        dataUrl: node.data.generatedImage,
+        path: stripFileExtension({ path }),
+      })
+    );
+  }
+
   return assets;
 }
 

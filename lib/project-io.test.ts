@@ -8,9 +8,6 @@ import {
 } from "./project-io";
 import { computeEdges, useFlowStore } from "./store";
 
-const PNG_EXT_PATTERN = /\.png$/;
-const WEBP_EXT_PATTERN = /\.webp$/;
-
 beforeEach(() => {
   useFlowStore.setState(useFlowStore.getInitialState());
 });
@@ -215,7 +212,7 @@ describe("collectAssets", () => {
     expect(assets).toHaveLength(0);
   });
 
-  it("collects location images", () => {
+  it("collects location images using normalized location names", () => {
     useFlowStore.getState().addLocationNode();
     const locNode = useFlowStore
       .getState()
@@ -223,41 +220,125 @@ describe("collectAssets", () => {
     if (!locNode) {
       throw new Error("No location node");
     }
+    useFlowStore.getState().setLocationName({
+      nodeId: locNode.id,
+      name: "Misty Forest!",
+    });
     useFlowStore.getState().setLocationGeneratedImage({
       nodeId: locNode.id,
       image: "data:image/png;base64,AQID",
     });
 
     const assets = collectAssets({ nodes: useFlowStore.getState().nodes });
-    const locAsset = assets.find((a) => a.path.startsWith("locations/"));
-    expect(locAsset).toBeDefined();
-    expect(locAsset?.path).toMatch(PNG_EXT_PATTERN);
+    expect(assets.map((a) => a.path)).toContain("locations/misty-forest.png");
   });
 
-  it("collects character front and side images", () => {
-    useFlowStore.getState().addCharacterNode();
-    const charNode = useFlowStore
+  it("collects raw base64 image strings without data url prefixes", () => {
+    useFlowStore.getState().addLocationNode();
+    const locationNode = useFlowStore
       .getState()
-      .nodes.find((n) => n.type === "character");
-    if (!charNode) {
+      .nodes.find((node) => node.type === "location");
+    if (!locationNode) {
+      throw new Error("No location node");
+    }
+    useFlowStore.getState().setLocationGeneratedImage({
+      nodeId: locationNode.id,
+      image: "AQID",
+    });
+
+    useFlowStore.getState().addCharacterNode();
+    const characterNode = useFlowStore
+      .getState()
+      .nodes.find((node) => node.type === "character");
+    if (!characterNode) {
       throw new Error("No character node");
     }
     useFlowStore.getState().setCharacterImages({
-      nodeId: charNode.id,
+      nodeId: characterNode.id,
+      frontalImage: "AQID",
+      sideImage: "BAUG",
+    });
+
+    useFlowStore.getState().addStoryImageNode();
+    const storyNode = useFlowStore
+      .getState()
+      .nodes.find((node) => node.type === "storyImage");
+    if (!storyNode) {
+      throw new Error("No story image node");
+    }
+    useFlowStore.getState().setStoryImageGeneratedImage({
+      nodeId: storyNode.id,
+      image: "AQID",
+    });
+
+    const assets = collectAssets({ nodes: useFlowStore.getState().nodes });
+    const paths = assets.map((asset) => asset.path);
+
+    expect(paths).toContain("locations/location.png");
+    expect(paths).toContain("characters/character-front.png");
+    expect(paths).toContain("characters/character-side.png");
+    expect(paths).toContain("story-frames/01.png");
+  });
+
+  it("uses fallback names when location and character names are empty", () => {
+    useFlowStore.getState().addLocationNode();
+    const locationNode = useFlowStore
+      .getState()
+      .nodes.find((node) => node.type === "location");
+    if (!locationNode) {
+      throw new Error("No location node");
+    }
+    useFlowStore.getState().setLocationGeneratedImage({
+      nodeId: locationNode.id,
+      image: "data:image/png;base64,AQID",
+    });
+
+    useFlowStore.getState().addCharacterNode();
+    const characterNode = useFlowStore
+      .getState()
+      .nodes.find((node) => node.type === "character");
+    if (!characterNode) {
+      throw new Error("No character node");
+    }
+    useFlowStore.getState().setCharacterImages({
+      nodeId: characterNode.id,
+      frontalImage: "data:image/png;base64,AQID",
+      sideImage: "data:image/png;base64,BAUG",
+    });
+
+    const assets = collectAssets({ nodes: useFlowStore.getState().nodes });
+    const paths = assets.map((a) => a.path);
+
+    expect(paths).toContain("locations/location.png");
+    expect(paths).toContain("characters/character-front.png");
+    expect(paths).toContain("characters/character-side.png");
+  });
+
+  it("collects character front and side images using normalized character names", () => {
+    useFlowStore.getState().addCharacterNode();
+    const characterNode = useFlowStore
+      .getState()
+      .nodes.find((node) => node.type === "character");
+    if (!characterNode) {
+      throw new Error("No character node");
+    }
+    useFlowStore.getState().setCharacterName({
+      nodeId: characterNode.id,
+      name: "Captain Nova",
+    });
+    useFlowStore.getState().setCharacterImages({
+      nodeId: characterNode.id,
       frontalImage: "data:image/png;base64,AQID",
       sideImage: "data:image/webp;base64,BAUG",
     });
 
     const assets = collectAssets({ nodes: useFlowStore.getState().nodes });
-    const frontAsset = assets.find((a) => a.path.includes("-front."));
-    const sideAsset = assets.find((a) => a.path.includes("-side."));
-    expect(frontAsset).toBeDefined();
-    expect(frontAsset?.path).toMatch(PNG_EXT_PATTERN);
-    expect(sideAsset).toBeDefined();
-    expect(sideAsset?.path).toMatch(WEBP_EXT_PATTERN);
+    const paths = assets.map((a) => a.path);
+    expect(paths).toContain("characters/captain-nova-front.png");
+    expect(paths).toContain("characters/captain-nova-side.webp");
   });
 
-  it("collects story frame images", () => {
+  it("collects story frame images using two-digit story position numbers", () => {
     useFlowStore.getState().addLocationNode();
     const locNode = useFlowStore
       .getState()
@@ -282,69 +363,107 @@ describe("collectAssets", () => {
       sideImage: "data:image/png;base64,BAUG",
     });
     useFlowStore.getState().addStoryImageNode();
-    const siNode = useFlowStore
+    useFlowStore.getState().addStoryImageNode();
+
+    const storyNodes = useFlowStore
       .getState()
-      .nodes.find((n) => n.type === "storyImage");
-    if (!siNode) {
-      throw new Error("No story image node");
+      .nodes.filter((node) => node.type === "storyImage");
+    const [firstStoryNode, secondStoryNode] = storyNodes;
+    if (!(firstStoryNode && secondStoryNode)) {
+      throw new Error("Expected two story image nodes");
     }
     useFlowStore.getState().setStoryImageGeneratedImage({
-      nodeId: siNode.id,
+      nodeId: firstStoryNode.id,
       image: "data:image/png;base64,AQID",
     });
     useFlowStore.getState().setStoryImageGeneratedImage16x9({
-      nodeId: siNode.id,
+      nodeId: firstStoryNode.id,
       image: "data:image/png;base64,BAUG",
+    });
+    useFlowStore.getState().setStoryImageGeneratedImage({
+      nodeId: secondStoryNode.id,
+      image: "data:image/webp;base64,BAUG",
     });
 
     const assets = collectAssets({ nodes: useFlowStore.getState().nodes });
-    const storyAsset = assets.find((a) => a.path.startsWith("story-frames/"));
-    const storyAsset16x9 = assets.find((a) =>
-      a.path.startsWith("story-frames-16x9/")
-    );
-    expect(storyAsset).toBeDefined();
-    expect(storyAsset16x9).toBeDefined();
+    const paths = assets.map((a) => a.path);
+    expect(paths).toContain("story-frames/01.png");
+    expect(paths).toContain("story-frames/02.webp");
+    expect(paths.some((path) => path.includes("16x9"))).toBe(false);
   });
 
-  it("collects comic strip png and pdf assets", () => {
+  it("appends numeric suffixes for duplicate normalized names", () => {
     useFlowStore.getState().addLocationNode();
-    const locNode = useFlowStore
+    useFlowStore.getState().addLocationNode();
+    const locationNodes = useFlowStore
       .getState()
-      .nodes.find((n) => n.type === "location");
-    if (!locNode) {
-      throw new Error("No location node");
+      .nodes.filter((node) => node.type === "location");
+    const [firstLocation, secondLocation] = locationNodes;
+    if (!(firstLocation && secondLocation)) {
+      throw new Error("Expected two location nodes");
     }
+
+    useFlowStore.getState().setLocationName({
+      nodeId: firstLocation.id,
+      name: "The City",
+    });
+    useFlowStore.getState().setLocationName({
+      nodeId: secondLocation.id,
+      name: "the-city",
+    });
     useFlowStore.getState().setLocationGeneratedImage({
-      nodeId: locNode.id,
+      nodeId: firstLocation.id,
       image: "data:image/png;base64,AQID",
     });
+    useFlowStore.getState().setLocationGeneratedImage({
+      nodeId: secondLocation.id,
+      image: "data:image/png;base64,BAUG",
+    });
+
     useFlowStore.getState().addCharacterNode();
-    const charNode = useFlowStore
+    useFlowStore.getState().addCharacterNode();
+    const characterNodes = useFlowStore
       .getState()
-      .nodes.find((n) => n.type === "character");
-    if (!charNode) {
-      throw new Error("No character node");
+      .nodes.filter((node) => node.type === "character");
+    const [firstCharacter, secondCharacter] = characterNodes;
+    if (!(firstCharacter && secondCharacter)) {
+      throw new Error("Expected two character nodes");
     }
+
+    useFlowStore.getState().setCharacterName({
+      nodeId: firstCharacter.id,
+      name: "hero",
+    });
+    useFlowStore.getState().setCharacterName({
+      nodeId: secondCharacter.id,
+      name: "Hero!!",
+    });
     useFlowStore.getState().setCharacterImages({
-      nodeId: charNode.id,
+      nodeId: firstCharacter.id,
       frontalImage: "data:image/png;base64,AQID",
-      sideImage: "data:image/png;base64,BAUG",
+      sideImage: null,
     });
-    useFlowStore.getState().addStoryImageNode();
-    const siNode = useFlowStore
-      .getState()
-      .nodes.find((n) => n.type === "storyImage");
-    if (!siNode) {
-      throw new Error("No story image node");
-    }
-    useFlowStore.getState().setStoryImageGeneratedImage({
-      nodeId: siNode.id,
-      image: "data:image/png;base64,AQID",
+    useFlowStore.getState().setCharacterImages({
+      nodeId: secondCharacter.id,
+      frontalImage: "data:image/png;base64,BAUG",
+      sideImage: null,
     });
+
+    const assets = collectAssets({ nodes: useFlowStore.getState().nodes });
+    const paths = assets.map((a) => a.path);
+
+    expect(paths).toContain("locations/the-city.png");
+    expect(paths).toContain("locations/the-city-2.png");
+    expect(paths).toContain("characters/hero-front.png");
+    expect(paths).toContain("characters/hero-front-2.png");
+  });
+
+  it("does not include movie or comic strip assets", () => {
+    setupMovieNodeWithGeneratedBlobVideo();
     useFlowStore.getState().addComicStripNode();
     const comicNode = useFlowStore
       .getState()
-      .nodes.find((n) => n.type === "comicStrip");
+      .nodes.find((node) => node.type === "comicStrip");
     if (!comicNode) {
       throw new Error("No comic strip node");
     }
@@ -358,15 +477,10 @@ describe("collectAssets", () => {
     });
 
     const assets = collectAssets({ nodes: useFlowStore.getState().nodes });
-    const comicPngAsset = assets.find(
-      (a) => a.path === "comic-strip/comic-strip.png"
-    );
-    const comicPdfAsset = assets.find(
-      (a) => a.path === "comic-strip/comic-strip.pdf"
-    );
+    const paths = assets.map((asset) => asset.path);
 
-    expect(comicPngAsset).toBeDefined();
-    expect(comicPdfAsset).toBeDefined();
+    expect(paths.some((path) => path.startsWith("movie/"))).toBe(false);
+    expect(paths.some((path) => path.startsWith("comic-strip/"))).toBe(false);
   });
 });
 
