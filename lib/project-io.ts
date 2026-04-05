@@ -100,6 +100,35 @@ function imageAssetEntry({
   };
 }
 
+function collectStoryImageAssets(opts: {
+  generatedImage: string | null;
+  generatedImage16x9: string | null;
+  nodeId: string;
+}): AssetEntry[] {
+  if (!(opts.generatedImage || opts.generatedImage16x9)) {
+    return [];
+  }
+
+  const entries: AssetEntry[] = [];
+  if (opts.generatedImage) {
+    entries.push(
+      imageAssetEntry({
+        dataUrl: opts.generatedImage,
+        path: `story-frames/${opts.nodeId}`,
+      })
+    );
+  }
+  if (opts.generatedImage16x9) {
+    entries.push(
+      imageAssetEntry({
+        dataUrl: opts.generatedImage16x9,
+        path: `story-frames-16x9/${opts.nodeId}`,
+      })
+    );
+  }
+  return entries;
+}
+
 function collectNodeAssets({ node }: { node: AppNode }): AssetEntry[] {
   switch (node.type) {
     case "location":
@@ -133,15 +162,11 @@ function collectNodeAssets({ node }: { node: AppNode }): AssetEntry[] {
       return entries;
     }
     case "storyImage":
-      if (node.data.generatedImage) {
-        return [
-          imageAssetEntry({
-            dataUrl: node.data.generatedImage,
-            path: `story-frames/${node.id}`,
-          }),
-        ];
-      }
-      return [];
+      return collectStoryImageAssets({
+        generatedImage: node.data.generatedImage,
+        generatedImage16x9: node.data.generatedImage16x9,
+        nodeId: node.id,
+      });
     case "movie":
       if (node.data.generatedVideoUrl?.startsWith("data:")) {
         const raw = stripDataUrlPrefix({

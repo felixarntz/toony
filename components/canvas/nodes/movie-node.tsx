@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { parseApiErrorResponse, parseUnknownError } from "@/lib/api-error";
 import { useFlowStore } from "@/lib/store";
+import { getStoryImageAspectRatio } from "@/lib/story-image-aspect-ratio";
 import type { MovieNodeType, StoryImageNodeData } from "@/lib/types";
 
 interface FFmpegInstance {
@@ -21,6 +22,95 @@ interface FFmpegInstance {
 
 const FFMPEG_CDN_BASE = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
 
+function getUsableStoryImage(opts: {
+  storyImage: string | null | undefined;
+}): string | null {
+  if (typeof opts.storyImage !== "string" || opts.storyImage.length === 0) {
+    return null;
+  }
+  return opts.storyImage;
+}
+
+async function prepareClipInput(opts: {
+  imageModel: string;
+  setStoryImageGeneratedImage16x9: (opts: {
+    nodeId: string;
+    image: string | null;
+  }) => void;
+  siData: StoryImageNodeData;
+  siNodeId: string;
+  storyImageIndex: number;
+}): Promise<{ sceneDescription: string; storyImageData: string }> {
+  const baseStoryImage = getUsableStoryImage({
+    storyImage: opts.siData.generatedImage,
+  });
+  const storyImage16x9 = getUsableStoryImage({
+    storyImage: opts.siData.generatedImage16x9,
+  });
+  const frameAspectRatio = getStoryImageAspectRatio({
+    index: opts.storyImageIndex,
+  });
+
+  if (frameAspectRatio !== "1:1") {
+    if (baseStoryImage) {
+      return {
+        sceneDescription: opts.siData.sceneDescription,
+        storyImageData: baseStoryImage,
+      };
+    }
+    if (storyImage16x9) {
+      return {
+        sceneDescription: opts.siData.sceneDescription,
+        storyImageData: storyImage16x9,
+      };
+    }
+    throw new Error("Story image data is required");
+  }
+
+  if (storyImage16x9) {
+    return {
+      sceneDescription: opts.siData.sceneDescription,
+      storyImageData: storyImage16x9,
+    };
+  }
+
+  if (!baseStoryImage) {
+    throw new Error("Story image data is required");
+  }
+
+  const extendResponse = await fetch("/api/extend-story-image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      storyImageData: baseStoryImage,
+      sceneDescription: opts.siData.sceneDescription,
+      model: opts.imageModel,
+    }),
+  });
+
+  if (!extendResponse.ok) {
+    throw await parseApiErrorResponse({ response: extendResponse });
+  }
+
+  const extendedResult = await extendResponse.json();
+  const extendedImage = getUsableStoryImage({
+    storyImage: extendedResult.image as string | null | undefined,
+  });
+  if (!extendedImage) {
+    throw new Error("No 16:9 image was generated");
+  }
+
+  opts.setStoryImageGeneratedImage16x9({
+    nodeId: opts.siNodeId,
+    image: extendedImage,
+  });
+
+  return {
+    sceneDescription: opts.siData.sceneDescription,
+    storyImageData: extendedImage,
+  };
+}
+
 export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
   const removeMovieNode = useFlowStore((s) => s.removeMovieNode);
   const setMovieGeneratedVideoUrl = useFlowStore(
@@ -29,17 +119,25 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
   const setMovieError = useFlowStore((s) => s.setMovieError);
   const setMovieIsGenerating = useFlowStore((s) => s.setMovieIsGenerating);
   const setMoviePhase = useFlowStore((s) => s.setMoviePhase);
+  const setStoryImageGeneratedImage16x9 = useFlowStore(
+    (s) => s.setStoryImageGeneratedImage16x9
+  );
   const nodes = useFlowStore((s) => s.nodes);
   const globalSettings = useFlowStore((s) => s.globalSettings);
 
   const ffmpegRef = useRef<FFmpegInstance | null>(null);
   const [ffmpegLoading, setFfmpegLoading] = useState(false);
 
-  const completedStoryImages = nodes.filter(
-    (n) =>
-      n.type === "storyImage" &&
-      (n.data as StoryImageNodeData).generatedImage !== null
-  );
+  const completedStoryImages = nodes.filter((n) => {
+    if (n.type !== "storyImage") {
+      return false;
+    }
+    const storyImageData = n.data as StoryImageNodeData;
+    return (
+      typeof storyImageData.generatedImage === "string" &&
+      storyImageData.generatedImage.length > 0
+    );
+  });
 
   const loadFfmpeg = useCallback(async (): Promise<FFmpegInstance> => {
     if (ffmpegRef.current?.loaded) {
@@ -77,17 +175,38 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
 
     setMovieError({ nodeId: id, error: null });
     setMovieIsGenerating({ nodeId: id, isGenerating: true });
-    setMoviePhase({ nodeId: id, phase: "generating-clips" });
+    setMoviePhase({ nodeId: id, phase: "preparing-images" });
 
     try {
-      const clipPromises = completedStoryImages.map(async (siNode) => {
-        const siData = siNode.data as StoryImageNodeData;
+      const storyImageNodes = nodes.filter(
+        (node) => node.type === "storyImage"
+      );
+
+      const clipInputs = await Promise.all(
+        completedStoryImages.map(async (siNode) => {
+          const siData = siNode.data as StoryImageNodeData;
+          const storyImageIndex = storyImageNodes.findIndex(
+            (node) => node.id === siNode.id
+          );
+          return await prepareClipInput({
+            siData,
+            siNodeId: siNode.id,
+            storyImageIndex,
+            imageModel: globalSettings.imageModel,
+            setStoryImageGeneratedImage16x9,
+          });
+        })
+      );
+
+      setMoviePhase({ nodeId: id, phase: "generating-clips" });
+
+      const clipPromises = clipInputs.map(async (clipInput) => {
         const response = await fetch("/api/generate-video", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            storyImageData: siData.generatedImage,
-            sceneDescription: siData.sceneDescription,
+            storyImageData: clipInput.storyImageData,
+            sceneDescription: clipInput.sceneDescription,
             model: globalSettings.videoModel,
           }),
         });
@@ -154,14 +273,20 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
     data.isGenerating,
     id,
     globalSettings.videoModel,
+    globalSettings.imageModel,
     loadFfmpeg,
     setMovieError,
     setMovieGeneratedVideoUrl,
     setMovieIsGenerating,
     setMoviePhase,
+    setStoryImageGeneratedImage16x9,
+    nodes,
   ]);
 
   const getPhaseLabel = () => {
+    if (data.phase === "preparing-images") {
+      return "Preparing 16:9 story images...";
+    }
     if (data.phase === "generating-clips") {
       return "Generating video clips...";
     }

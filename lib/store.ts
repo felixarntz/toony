@@ -127,6 +127,10 @@ interface FlowState {
     nodeId: string;
     image: string | null;
   }) => void;
+  setStoryImageGeneratedImage16x9: (opts: {
+    nodeId: string;
+    image: string | null;
+  }) => void;
   setStoryImageIsGenerating: (opts: {
     nodeId: string;
     isGenerating: boolean;
@@ -558,6 +562,7 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         sceneDescription: "",
         error: null,
         generatedImage: null,
+        generatedImage16x9: null,
         isGenerating: false,
       },
     };
@@ -849,7 +854,21 @@ export const useFlowStore = create<FlowState>((set, get) => ({
         updateStoryImageNode({
           nodes: get().nodes,
           nodeId,
-          updater: (d) => ({ ...d, generatedImage: image }),
+          updater: (d) => ({
+            ...d,
+            generatedImage: image,
+            generatedImage16x9: null,
+          }),
+        })
+      )
+    ),
+  setStoryImageGeneratedImage16x9: ({ nodeId, image }) =>
+    set(
+      setNodesOnly(
+        updateStoryImageNode({
+          nodes: get().nodes,
+          nodeId,
+          updater: (d) => ({ ...d, generatedImage16x9: image }),
         })
       )
     ),

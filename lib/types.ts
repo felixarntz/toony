@@ -58,6 +58,7 @@ export interface StoryImageNodeData {
   characterIds: string[];
   error: NodeError | null;
   generatedImage: string | null;
+  generatedImage16x9: string | null;
   isGenerating: boolean;
   locationId: string | null;
   sceneDescription: string;
@@ -72,7 +73,7 @@ export interface MovieNodeData {
   error: NodeError | null;
   generatedVideoUrl: string | null;
   isGenerating: boolean;
-  phase: "idle" | "generating-clips" | "concatenating";
+  phase: "idle" | "preparing-images" | "generating-clips" | "concatenating";
   [key: string]: unknown;
 }
 

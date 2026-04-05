@@ -218,10 +218,18 @@ describe("collectAssets", () => {
       nodeId: siNode.id,
       image: "data:image/png;base64,AQID",
     });
+    useFlowStore.getState().setStoryImageGeneratedImage16x9({
+      nodeId: siNode.id,
+      image: "data:image/png;base64,BAUG",
+    });
 
     const assets = collectAssets({ nodes: useFlowStore.getState().nodes });
     const storyAsset = assets.find((a) => a.path.startsWith("story-frames/"));
+    const storyAsset16x9 = assets.find((a) =>
+      a.path.startsWith("story-frames-16x9/")
+    );
     expect(storyAsset).toBeDefined();
+    expect(storyAsset16x9).toBeDefined();
   });
 
   it("collects comic strip png and pdf assets", () => {

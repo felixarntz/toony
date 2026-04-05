@@ -382,6 +382,7 @@ describe("store - story image nodes", () => {
       sceneDescription: "",
       error: null,
       generatedImage: null,
+      generatedImage16x9: null,
       isGenerating: false,
     });
   });
@@ -499,6 +500,46 @@ describe("store - story image data updates", () => {
 
     const updated = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
     expect(updated?.data).toHaveProperty("generatedImage", "story-base64");
+    expect(updated?.data).toHaveProperty("generatedImage16x9", null);
+  });
+
+  it("updates story image 16:9 generated image", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const nodeId = getStoryImageNodeId();
+
+    useFlowStore.getState().setStoryImageGeneratedImage16x9({
+      nodeId,
+      image: "story-16x9-base64",
+    });
+
+    const updated = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+    expect(updated?.data).toHaveProperty(
+      "generatedImage16x9",
+      "story-16x9-base64"
+    );
+  });
+
+  it("resets 16:9 variant when base story image is regenerated", () => {
+    setupCompletedLocationAndCharacter();
+    useFlowStore.getState().addStoryImageNode();
+    const nodeId = getStoryImageNodeId();
+
+    useFlowStore.getState().setStoryImageGeneratedImage16x9({
+      nodeId,
+      image: "story-16x9-base64",
+    });
+    useFlowStore.getState().setStoryImageGeneratedImage({
+      nodeId,
+      image: "story-base64-regenerated",
+    });
+
+    const updated = useFlowStore.getState().nodes.find((n) => n.id === nodeId);
+    expect(updated?.data).toHaveProperty(
+      "generatedImage",
+      "story-base64-regenerated"
+    );
+    expect(updated?.data).toHaveProperty("generatedImage16x9", null);
   });
 
   it("does not recompute edges for scene-description-only changes", () => {
