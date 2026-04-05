@@ -8,6 +8,7 @@ import {
   STORY_IMAGE_TOP_TARGET_HANDLE_ID,
 } from "@/lib/edge-handles";
 import { computeLayoutPositions, resolveOverlap } from "@/lib/layout";
+import type { StylePreset } from "@/lib/style-presets";
 import type {
   AppNode,
   CharacterNodeData,
@@ -18,7 +19,6 @@ import type {
   SettingNodeData,
   StoryImageNodeData,
   StyleNodeData,
-  StylePreset,
 } from "@/lib/types";
 
 const MAX_LOCATION_NODES = 2;

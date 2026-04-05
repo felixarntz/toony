@@ -1,23 +1,5 @@
 import type { Node } from "@xyflow/react";
-
-export const STYLE_PRESETS = [
-  "ghibli-anime",
-  "pixar-3d",
-  "comic-book",
-  "watercolor",
-  "retro-cartoon",
-  "manga",
-  "oil-painting",
-  "pixel-art",
-  "paper-cutout",
-  "claymation",
-  "wes-anderson-film",
-  "zack-snyder-film",
-  "sin-city-noir",
-  "custom",
-] as const;
-
-export type StylePreset = (typeof STYLE_PRESETS)[number];
+import type { StylePreset } from "@/lib/style-presets";
 
 export interface NodeError {
   message: string;

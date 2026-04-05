@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { STYLE_PRESET_DESCRIPTIONS } from "@/lib/constants";
 import { computeEdges, useFlowStore } from "@/lib/store";
-import type { SettingNodeData, StyleNodeData, StylePreset } from "@/lib/types";
+import type { StylePreset } from "@/lib/style-presets";
+import { STYLE_PRESET_DESCRIPTIONS } from "@/lib/style-presets";
+import type { SettingNodeData, StyleNodeData } from "@/lib/types";
 
 describe("useFlowStore", () => {
   beforeEach(() => {
@@ -65,7 +66,7 @@ describe("useFlowStore", () => {
 
   it("has descriptions for all non-custom presets", () => {
     const presetKeys = Object.keys(STYLE_PRESET_DESCRIPTIONS);
-    expect(presetKeys).toHaveLength(13);
+    expect(presetKeys).toHaveLength(15);
     for (const key of presetKeys) {
       expect(
         STYLE_PRESET_DESCRIPTIONS[key as Exclude<StylePreset, "custom">]

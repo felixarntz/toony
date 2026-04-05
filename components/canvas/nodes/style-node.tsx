@@ -2,9 +2,13 @@
 
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { useLiveTextDraft } from "@/components/canvas/use-live-text-draft";
-import { STYLE_PRESET_LABELS } from "@/lib/constants";
 import { useFlowStore } from "@/lib/store";
-import { STYLE_PRESETS, type StyleNodeType } from "@/lib/types";
+import {
+  STYLE_PRESET_LABELS,
+  STYLE_PRESETS,
+  type StylePreset,
+} from "@/lib/style-presets";
+import type { StyleNodeType } from "@/lib/types";
 
 export function StyleNode({ data }: NodeProps<StyleNodeType>) {
   const setStylePreset = useFlowStore((s) => s.setStylePreset);
@@ -37,7 +41,7 @@ export function StyleNode({ data }: NodeProps<StyleNodeType>) {
           id="style-preset"
           onChange={(e) =>
             setStylePreset({
-              preset: e.target.value as StyleNodeType["data"]["preset"],
+              preset: e.target.value as StylePreset,
             })
           }
           value={data.preset}

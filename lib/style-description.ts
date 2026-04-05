@@ -1,4 +1,4 @@
-import { STYLE_PRESET_DESCRIPTIONS } from "@/lib/constants";
+import { STYLE_PRESET_DESCRIPTIONS } from "@/lib/style-presets";
 import type { AppNode, SettingNodeData, StyleNodeData } from "@/lib/types";
 
 export function getStyleDescription(opts: { nodes: AppNode[] }): string {
