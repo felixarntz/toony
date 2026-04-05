@@ -377,6 +377,15 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
     return "Processing...";
   };
   const phaseLabel = getPhaseLabel();
+  const generateButtonLabel = (() => {
+    if (data.isGenerating) {
+      return "Generating...";
+    }
+    if (data.generatedVideoUrl) {
+      return "Regenerate Movie";
+    }
+    return "Generate Movie";
+  })();
 
   return (
     <div className="relative w-96 overflow-hidden rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)]">
@@ -443,7 +452,7 @@ export function MovieNode({ id, data }: NodeProps<MovieNodeType>) {
           ) : (
             <Sparkles className="size-3" />
           )}
-          {data.isGenerating ? "Generating..." : "Generate Movie"}
+          {generateButtonLabel}
         </Button>
 
         <div className="mt-2 grid grid-cols-2 gap-2">

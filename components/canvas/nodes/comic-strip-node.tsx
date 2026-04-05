@@ -405,6 +405,15 @@ export function ComicStripNode({ id, data }: NodeProps<ComicStripNodeType>) {
       filename: "comic-strip.pdf",
     });
   }, [data.generatedPdfUrl]);
+  const generateButtonLabel = (() => {
+    if (data.isGenerating) {
+      return "Generating...";
+    }
+    if (data.generatedPngUrl || data.generatedPdfUrl) {
+      return "Regenerate Comic Strip";
+    }
+    return "Generate Comic Strip";
+  })();
 
   return (
     <div className="relative w-96 overflow-hidden rounded-lg border border-[var(--node-input-border)] bg-[var(--node-surface)]">
@@ -464,7 +473,7 @@ export function ComicStripNode({ id, data }: NodeProps<ComicStripNodeType>) {
           ) : (
             <Sparkles className="size-3" />
           )}
-          {data.isGenerating ? "Generating..." : "Generate Comic Strip"}
+          {generateButtonLabel}
         </Button>
 
         <div className="grid grid-cols-2 gap-2">
